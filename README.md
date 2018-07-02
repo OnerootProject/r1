@@ -256,7 +256,7 @@ function depositToken(address token, uint256 amount)
 #### pre env
 **R1Exchange:** 0x78987a34935754eD24B3868C94e1a98e9161f36B
 
-**dmin account:** 
+**admin account:** 
 * 0x847D22c8479ce704f1e8873ea407537377A5B48F
 * 0xC36229f9C3124FAC85D9dEb2EaF624D6598167d6
 
