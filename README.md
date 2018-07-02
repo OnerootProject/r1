@@ -243,7 +243,7 @@ function depositToken(address token, uint256 amount)
 ### kovan testnet
 **R1Exchange:** 0x11d637997bfFf7c2c8d6ca7892806b3C0980B0a0,0x02Fd712f100D73653dFb5120B7A9B14fAf619bDb,0x7efcA8454e579215830B9226e2c67ECF1b8CedC2
 
-** admin account: ** 
+**admin account:** 
 * 0x899b5aab87326cafc71189f87a36584e02be2c83
 * 0xaee83b86da465c6daa9c65164db25821f272b8ce
 * 0x031d8da61261bc51e95affcc74359bbd6fcf388d
@@ -256,7 +256,7 @@ function depositToken(address token, uint256 amount)
 #### pre env
 **R1Exchange:** 0x78987a34935754eD24B3868C94e1a98e9161f36B
 
-** dmin account: ** 
+**dmin account:** 
 * 0x847D22c8479ce704f1e8873ea407537377A5B48F
 * 0xC36229f9C3124FAC85D9dEb2EaF624D6598167d6
 
@@ -266,7 +266,7 @@ function depositToken(address token, uint256 amount)
 
 **R1Exchange:** 0x353D92db08564500d812DDFD23a668D2F405ED85
 
-** admin account: ** 
+**admin account:** 
 * 0x457804851EAf090DAD4871F9609010C6868D99d4
 * 0xA0E85343129e21A625E980065dCa05856BB6BCFe
 * 0xA3cAda064D65b48C6c3ed9adAbE1923966a2719B
