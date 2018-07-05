@@ -6,7 +6,7 @@ This contract requires that some of the contract can be completed by the back-en
 ##### The contract call initiated by the back-end contains:
 1. trade/batchTrade: on-chain trading;
 2. adminWithdraw: admin withdrawal;
-3. approveWithdraw: pass withdrawa request;
+3. approveWithdraw: pass withdrawal request;
 
 #### Contract call initiated by the client (users) includes:
 1. deposit/depositToken:: top up ETH or token;
