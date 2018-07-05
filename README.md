@@ -1,7 +1,7 @@
 # R1 Protocol Interface Description
 ## Introduction
 The contract file is R1Exchange.sol.
-This contract requires that some of the contract call be completed by the back-end in order to achieve back-end controlled order matching and provide a better trading experience.
+This contract requires that some of the contract can be completed by the back-end in order to achieve back-end controlled order matching and provide a better trading experience.
 
 ##### The contract call initiated by the back-end contains:
 1. trade/batchTrade: on-chain trading;
