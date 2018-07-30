@@ -212,7 +212,58 @@ contract("Exchange", function (accounts) {
     //test exception condition
 
     testException()
+    testCancel()
 });
+
+function testCancel() {
+    it("cancel order", async () => {
+        let tokenInstance = await RNTToken.deployed()
+        let exchangeInstance = await Exchange.deployed()
+        let ram = Date.now()
+        let makerOrder = {
+            tokenBuy: tokenInstance.address,
+            tokenSell: 0,
+            user: taker,
+            amountBuy: web3.toWei("5", "ether"),
+            amountSell: web3.toWei("1", "ether"),
+            baseToken: 0,
+            expires: 5000000,
+            fee: web3.toWei("0.1", "ether"),
+            nonce: ram,
+            v: 0,
+            r: 0,
+            s: 0,
+            feeToken: 0
+        };
+        let takerOrder = {
+            tokenBuy: 0,
+            tokenSell: tokenInstance.address,
+            user: maker,
+            amountBuy: web3.toWei("1", "ether"),
+            amountSell: web3.toWei("5", "ether"),
+            baseToken: 0,
+            expires: 5000000,
+            fee: web3.toWei("0.01", "ether"),
+            nonce: ram,
+            v: 0,
+            r: 0,
+            s: 0,
+            feeToken: 0
+        };
+
+        await signOrder(exchangeInstance, makerOrder)
+        await signOrder(exchangeInstance, takerOrder)
+        var tradeAmount = web3.toWei("5", "ether")
+
+        //cancel this order
+        await exchangeInstance.batchCancel([taker], [ram], {from: admin})
+        // console.log("nonce", ram)
+        let params = genParams(makerOrder, takerOrder, tradeAmount)
+        await exchangeInstance.trade(params[0], params[1], params[2], params[3], params[4], {from: admin})
+            .catch((e) => assert.equal(e != null, true, "both order should be the same trade pair"))
+
+    })
+}
 
 function testSameUser() {
     it("same user buy and sell", async () => {
@@ -274,6 +325,7 @@ function testSameUser() {
 }
 
 function testException() {
+    let ram = Date.now()
     let makerOrder = {
         tokenBuy: 0,
         tokenSell: 0,
@@ -283,7 +335,7 @@ function testException() {
         baseToken: 0,
         expires: 5000000,
         fee: 0,
-        nonce: Date.now(),
+        nonce: ram,
         v: 0,
         r: 0,
         s: 0,
@@ -298,12 +350,14 @@ function testException() {
         baseToken: 0,
         expires: 5000000,
         fee: 0,
-        nonce: Date.now(),
+        nonce: ram,
         v: 0,
         r: 0,
         s: 0,
         feeToken: 0
     };
+
+    // console.log("exp nonce", ram)
 
     it("error check:not same trade pair", async () => {
         //reset

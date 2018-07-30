@@ -157,6 +157,18 @@ function adminWithdraw(address[3] addresses, uint256[3] values, uint8 v, bytes32
 | **r** | string | signature parameter r |
 | **s** | string | Signature parameters s |
 
+### batchCancel
+cancel users' order that before the nonce
+```javascript
+function batchCancel(address[] users, uint256[] nonces)
+```
+#### Parameters
+
+| Parameter Name | Type | Description |
+| :-------- | --------:| :------: |
+| users | address[] | users that to cancel order |
+nonces | int[] | nonce of the order |
+
 ### applyWithdraw
 The user calls this method to request for withdrawal
 ```javascript
