@@ -84,7 +84,7 @@ contract R1Exchange is SafeMath, Ownable {
     function batchCancel(address[] users, uint256[] nonces) public onlyAdmin {
         require(users.length == nonces.length);
         for (uint i = 0; i < users.length; i++) {
-            require(nonces[i] > canceled[users[i]]);
+            require(nonces[i] >= canceled[users[i]]);
             canceled[users[i]] = nonces[i];
         }
     }
