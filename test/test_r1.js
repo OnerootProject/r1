@@ -73,8 +73,8 @@ contract("Exchange", function (accounts) {
     it("adminWithdraw", async () => {
         let tokenInstance = await RNTToken.deployed()
         let exchangeInstance = await Exchange.deployed()
-        hash = "0x" + abi.soliditySHA3(["address", "address", "uint256", "uint256"],
-            [taker, tokenInstance.address, web3.toWei("1", "ether"), 11]
+        hash = "0x" + abi.soliditySHA3(["address","address", "address", "uint256", "uint256"],
+            [exchangeInstance.address,taker, tokenInstance.address, web3.toWei("1", "ether"), 11]
         ).toString("hex")
         console.log("=========", hash)
         var signed = web3.eth.sign(taker, hash);

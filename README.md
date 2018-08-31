@@ -28,6 +28,7 @@ The steps for signing an order on the front-end are as follows:
 
 | Parameter Name | Description |
 | :--------| :------: |
+| **contract** | exchange contract address |
 | **tokenBuy** | contract address that buys token |
 | **amountBuy** | amount of token to buy |
 | **tokenSell** | contract address that sells token |
@@ -58,6 +59,7 @@ As with the order information signature, you need to get hash from the withdrawa
   
 | Parameter Name | Description |
 | :--------| :------: |
+| **contract** | exchange contract address |
 | **user** | Withdrawal user's account |
 | **token** | Withdrawal token's address |
 | **amount** | Withdrawal amount |

@@ -15,8 +15,8 @@ contract R1Exchange is SafeMath, Ownable {
     mapping(address => mapping(address => uint)) public latestApply;//save the latest apply timestamp
     mapping(address => uint256) public canceled;
 
-    uint public applyWait = 7 days;
-    uint public feeRate = 20;
+    uint public applyWait = 1 days;
+    uint public feeRate = 10;
     bool public withdrawEnabled = false;
     bool public stop = false;
 
@@ -187,7 +187,7 @@ contract R1Exchange is SafeMath, Ownable {
         require(amount <= tokenList[token][user]);
         fee = checkFee(amount, fee);
 
-        bytes32 hash = keccak256(user, token, amount, nonce);
+        bytes32 hash = keccak256(this,user, token, amount, nonce);
         require(!withdrawn[hash]);
         withdrawn[hash] = true;
         require(ecrecover(keccak256("\x19Ethereum Signed Message:\n32", hash), v, r, s) == user);
@@ -212,8 +212,8 @@ contract R1Exchange is SafeMath, Ownable {
         return maxFee;
     }
 
-    function getOrderHash(address tokenBuy, uint256 amountBuy, address tokenSell, uint256 amountSell, address base, uint256 expires, uint256 nonce, address feeToken) public pure returns (bytes32) {
-        return keccak256(tokenBuy, amountBuy, tokenSell, amountSell, base, expires, nonce, feeToken);
+    function getOrderHash(address tokenBuy, uint256 amountBuy, address tokenSell, uint256 amountSell, address base, uint256 expires, uint256 nonce, address feeToken) public view returns (bytes32) {
+        return keccak256(this,tokenBuy, amountBuy, tokenSell, amountSell, base, expires, nonce, feeToken);
     }
 
 
