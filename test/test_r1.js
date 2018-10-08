@@ -70,11 +70,22 @@ contract("Exchange", function (accounts) {
 
 
     })
+    // it("depositTo", async () => {
+    //     let tokenInstance = await RNTToken.deployed()
+    //     let exchangeInstance = await Exchange.deployed()
+    //     await tokenInstance.transfer(taker, web3.toWei(takerRNTBalance, "ether"), {from: owner})
+    //     await tokenInstance.approve(exchangeInstance.address, web3.toWei(1000000000000, "ether"), {from: taker})
+    //     let result = await exchangeInstance.batchDepositTo(tokenInstance.address, [maker], [web3.toWei(1, "ether")], {from: taker})
+    //     assert.equal(result.receipt.status, 1, "taker deposit rnt to maker failed")
+    //     balance = await exchangeInstance.balanceOf(tokenInstance.address, maker)
+    //     assert.equal(web3.fromWei(balance.valueOf()), 1, "taker deposit " + initRNT + " rnt to maker failed")
+    // })
+
     it("adminWithdraw", async () => {
         let tokenInstance = await RNTToken.deployed()
         let exchangeInstance = await Exchange.deployed()
-        hash = "0x" + abi.soliditySHA3(["address","address", "address", "uint256", "uint256"],
-            [exchangeInstance.address,taker, tokenInstance.address, web3.toWei("1", "ether"), 11]
+        hash = "0x" + abi.soliditySHA3(["address", "address", "address", "uint256", "uint256"],
+            [exchangeInstance.address, taker, tokenInstance.address, web3.toWei("1", "ether"), 11]
         ).toString("hex")
         console.log("=========", hash)
         var signed = web3.eth.sign(taker, hash);
