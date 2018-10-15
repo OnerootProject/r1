@@ -224,6 +224,8 @@ contract("Exchange", function (accounts) {
 
     testException()
     testCancel()
+
+    testBugBH();
 });
 
 function testCancel() {
@@ -936,6 +938,80 @@ function testTradeNotMatch(topic, makerOrder, takerOrder) {
         var r = [makerOrder.r, takerOrder.r]
         var s = [makerOrder.s, takerOrder.s]
         exchangeInstance.trade(addresses, values, v, r, s, {from: admin}).catch((e) => assert.equal(e != null, true, "this rate should not be traded!"))
+
+    })
+}
+
+//bug:taker buy完全匹配多个maker sell的订单,交易失败
+function testBugBH() {
+    it("BugBH:", async () => {
+        //taker buy tokens to match many maker
+        let tokenInstance = await RNTToken.deployed()
+        let exchangeInstance = await Exchange.deployed()
+        let ram = Date.now()
+        let makerOrder = {
+            tokenBuy: 0,
+            tokenSell: tokenInstance.address,
+            user: maker,
+            amountBuy: web3.toWei("0.8", "ether"),
+            amountSell: web3.toWei("10", "ether"),
+            baseToken: 0,
+            expires: 5000000,
+            fee: web3.toWei("0.01", "ether"),
+            nonce: ram,
+            v: 0,
+            r: 0,
+            s: 0,
+            feeToken: 0
+        };
+        let makerOrder2 = {
+            tokenBuy: 0,
+            tokenSell: tokenInstance.address,
+            user: maker,
+            amountBuy: web3.toWei("0.5", "ether"),
+            amountSell: web3.toWei("10", "ether"),
+            baseToken: 0,
+            expires: 5000000,
+            fee: web3.toWei("0.01", "ether"),
+            nonce: ram + 1009,
+            v: 0,
+            r: 0,
+            s: 0,
+            feeToken: 0
+        };
+        let takerOrder = {
+            tokenBuy: tokenInstance.address,
+            tokenSell: 0,
+            user: taker,
+            amountBuy: web3.toWei("20", "ether"),
+            amountSell: web3.toWei("2", "ether"),
+            baseToken: 0,
+            expires: 5000000,
+            fee: web3.toWei("0.002", "ether"),
+            nonce: ram,
+            v: 0,
+            r: 0,
+            s: 0,
+            feeToken: 0
+        };
+
+        await signOrder(exchangeInstance, makerOrder)
+        await signOrder(exchangeInstance, makerOrder2)
+        await signOrder(exchangeInstance, takerOrder)
+        var tradeAmount = web3.toWei("10", "ether")
+
+        let params = genParams(makerOrder, takerOrder, tradeAmount)
+
+
+        let result = await exchangeInstance.trade(params[0], params[1], params[2], params[3], params[4], {from: admin})
+        assert.equal(result.receipt.status, 1, "trade1 failed!")
+        console.log("gasUsed:", result.receipt.gasUsed)
+
+        params = genParams(makerOrder2, takerOrder, tradeAmount)
+
+        result = await exchangeInstance.trade(params[0], params[1], params[2], params[3], params[4], {from: admin})
+        assert.equal(result.receipt.status, 1, "trade2 failed!")
+        console.log("gasUsed:", result.receipt.gasUsed)
 
     })
 }
