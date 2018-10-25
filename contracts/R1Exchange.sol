@@ -7,18 +7,23 @@ contract R1Exchange is SafeMath, Ownable {
     mapping(address => bool) public admins;
     mapping(address => bool) public feeAccounts;
 
-    mapping(address => mapping(address => uint256)) public tokenList;
-    mapping(address => mapping(bytes32 => uint256)) public orderFilled;//tokens filled
+    // mapping(token address => mapping(owner address => mapping(channelId uint => uint256))) public tokenList;
+    mapping(address => mapping(address => mapping(uint256 => uint256))) public tokenList;
+    mapping(address => mapping(uint => mapping(bytes32 => uint256))) public orderFilled;//tokens filled
     mapping(bytes32 => bool) public withdrawn;
-    mapping(address => mapping(address => uint256)) public withdrawAllowance;
-    mapping(address => mapping(address => uint256)) public applyList;//withdraw apply list
-    mapping(address => mapping(address => uint)) public latestApply;//save the latest apply timestamp
-    mapping(address => uint256) public canceled;
+    mapping(address => mapping(address => mapping(uint256 => uint256))) public withdrawAllowance;
+    mapping(address => mapping(address => mapping(uint256 => uint256))) public applyList;//withdraw apply list
+    mapping(address => mapping(address => mapping(uint256 => uint))) public latestApply;//save the latest apply timestamp
+
+    // mapping(owner address => mapping(channelId uint => nonce uint256))) public canceled;
+    mapping(address => mapping(uint256 => uint)) public canceled;
 
     uint public applyWait = 1 days;
     uint public feeRate = 10;
     bool public withdrawEnabled = false;
     bool public stop = false;
+    uint256 public CHANNEL_START_ID = 100;
+    uint256 private SYSADM_CHANNEL_ID = 1;
 
     event Deposit(address indexed token, address indexed user, uint256 amount, uint256 balance);
     event DepositTo(address indexed token, address indexed from, address indexed user, uint256 amount, uint256 balance);
@@ -82,56 +87,60 @@ contract R1Exchange is SafeMath, Ownable {
     /**
     * cancel the order that before nonce.
     **/
-    function batchCancel(address[] users, uint256[] nonces) public onlyAdmin {
+    function batchCancel(address[] users, uint256[] nonces, uint256 channelId) public onlyAdmin {
         require(users.length == nonces.length);
         for (uint i = 0; i < users.length; i++) {
-            require(nonces[i] >= canceled[users[i]]);
-            canceled[users[i]] = nonces[i];
+            require(nonces[i] >= canceled[users[i]][channelId]);
+            canceled[users[i]][channelId] = nonces[i];
         }
     }
 
-    function deposit() public payable {
-        tokenList[0][msg.sender] = safeAdd(tokenList[0][msg.sender], msg.value);
-        Deposit(0, msg.sender, msg.value, tokenList[0][msg.sender]);
+    function deposit(uint256 channelId) public payable {
+        require(channelId >= CHANNEL_START_ID);
+        tokenList[0][msg.sender][channelId] = safeAdd(tokenList[0][msg.sender][channelId], msg.value);
+        emit Deposit(0, msg.sender, msg.value, tokenList[0][msg.sender][channelId]);
     }
 
-    function depositToken(address token, uint256 amount) public {
+    function depositToken(address token, uint256 amount, uint256 channelId) public {
         require(token != 0);
-        tokenList[token][msg.sender] = safeAdd(tokenList[token][msg.sender], amount);
+        require(channelId >= CHANNEL_START_ID);
+        tokenList[token][msg.sender][channelId] = safeAdd(tokenList[token][msg.sender][channelId], amount);
         require(Token(token).transferFrom(msg.sender, this, amount));
-        Deposit(token, msg.sender, amount, tokenList[token][msg.sender]);
+        emit Deposit(token, msg.sender, amount, tokenList[token][msg.sender][channelId]);
     }
 
-    function depositTo(address token, address to, uint256 amount) public {
+    function depositTo(address token, address to, uint256 amount, uint256 channelId) public {
         require(token != 0 && to != 0);
-        tokenList[token][to] = safeAdd(tokenList[token][to], amount);
+        require(channelId >= CHANNEL_START_ID);
+        tokenList[token][to][channelId] = safeAdd(tokenList[token][to][channelId], amount);
         require(Token(token).transferFrom(msg.sender, this, amount));
-        DepositTo(token, msg.sender, to, amount, tokenList[token][to]);
+        emit DepositTo(token, msg.sender, to, amount, tokenList[token][to][channelId]);
     }
 
-    function batchDepositTo(address token, address[] to, uint256[] amount) public {
+    function batchDepositTo(address token, address[] to, uint256[] amount, uint256 channelId) public {
         require(to.length == amount.length && to.length <= 200);
+        require(channelId >= CHANNEL_START_ID);
         for (uint i = 0; i < to.length; i++) {
-            depositTo(token, to[i], amount[i]);
+            depositTo(token, to[i], amount[i], channelId);
         }
     }
 
-    function applyWithdraw(address token, uint256 amount) public {
-        uint256 apply = safeAdd(applyList[token][msg.sender], amount);
-        require(safeAdd(apply, withdrawAllowance[token][msg.sender]) <= tokenList[token][msg.sender]);
-        applyList[token][msg.sender] = apply;
-        latestApply[token][msg.sender] = block.timestamp;
+    function applyWithdraw(address token, uint256 amount, uint256 channelId) public {
+        uint256 apply = safeAdd(applyList[token][msg.sender][channelId], amount);
+        require(safeAdd(apply, withdrawAllowance[token][msg.sender][channelId]) <= tokenList[token][msg.sender][channelId]);
+        applyList[token][msg.sender][channelId] = apply;
+        latestApply[token][msg.sender][channelId] = block.timestamp;
 
-        ApplyWithdraw(token, msg.sender, amount, block.timestamp);
+        emit ApplyWithdraw(token, msg.sender, amount, block.timestamp);
     }
 
     /**
     * approve user's withdraw application
     **/
-    function approveWithdraw(address token, address user) public onlyAdmin {
-        withdrawAllowance[token][user] = safeAdd(withdrawAllowance[token][user], applyList[token][user]);
-        applyList[token][user] = 0;
-        latestApply[token][user] = 0;
+    function approveWithdraw(address token, address user, uint256 channelId) public onlyAdmin {
+        withdrawAllowance[token][user][channelId] = safeAdd(withdrawAllowance[token][user][channelId], applyList[token][user][channelId]);
+        applyList[token][user][channelId] = 0;
+        latestApply[token][user][channelId] = 0;
     }
 
     /**
@@ -139,42 +148,53 @@ contract R1Exchange is SafeMath, Ownable {
     *    1. when the admin calls the approveWithdraw function;
     * or 2. when the lock time has passed since the application;
     **/
-    function withdraw(address token, uint256 amount) public {
-        require(amount <= tokenList[token][msg.sender]);
+    function withdraw(address token, uint256 amount, uint256 channelId) public {
+        require(amount <= tokenList[token][msg.sender][channelId]);
 
-        if (amount > withdrawAllowance[token][msg.sender]) {
+        if (amount > withdrawAllowance[token][msg.sender][channelId]) {
             //withdraw wait over time
-            require(latestApply[token][msg.sender] != 0 && safeSub(block.timestamp, latestApply[token][msg.sender]) > applyWait);
-            withdrawAllowance[token][msg.sender] = safeAdd(withdrawAllowance[token][msg.sender], applyList[token][msg.sender]);
-            applyList[token][msg.sender] = 0;
+            require(latestApply[token][msg.sender][channelId] != 0 && safeSub(block.timestamp, latestApply[token][msg.sender][channelId]) > applyWait);
+            withdrawAllowance[token][msg.sender][channelId] = safeAdd(withdrawAllowance[token][msg.sender][channelId], applyList[token][msg.sender][channelId]);
+            applyList[token][msg.sender][channelId] = 0;
         }
-        require(amount <= withdrawAllowance[token][msg.sender]);
-        withdrawAllowance[token][msg.sender] = safeSub(withdrawAllowance[token][msg.sender], amount);
-        tokenList[token][msg.sender] = safeSub(tokenList[token][msg.sender], amount);
-        latestApply[token][msg.sender] = 0;
+        require(amount <= withdrawAllowance[token][msg.sender][channelId]);
+        withdrawAllowance[token][msg.sender][channelId] = safeSub(withdrawAllowance[token][msg.sender][channelId], amount);
+        tokenList[token][msg.sender][channelId] = safeSub(tokenList[token][msg.sender][channelId], amount);
+        latestApply[token][msg.sender][channelId] = 0;
         if (token == 0) {//withdraw ether
             require(msg.sender.send(amount));
         } else {//withdraw token
             require(Token(token).transfer(msg.sender, amount));
         }
 
-        Withdraw(token, msg.sender, amount, tokenList[token][msg.sender]);
+        emit Withdraw(token, msg.sender, amount, tokenList[token][msg.sender][channelId]);
     }
 
     /**
     * withdraw directly when withdrawEnabled=true
     **/
-    function withdrawNoLimit(address token, uint256 amount) public isWithdrawEnabled {
-        require(amount <= tokenList[token][msg.sender]);
-        tokenList[token][msg.sender] = safeSub(tokenList[token][msg.sender], amount);
+    function withdrawNoLimit(address token, uint256 amount, uint256 channelId) public isWithdrawEnabled {
+        require(amount <= tokenList[token][msg.sender][channelId]);
+        tokenList[token][msg.sender][channelId] = safeSub(tokenList[token][msg.sender][channelId], amount);
         if (token == 0) {//withdraw ether
             require(msg.sender.send(amount));
         } else {//withdraw token
             require(Token(token).transfer(msg.sender, amount));
         }
-        Withdraw(token, msg.sender, amount, tokenList[token][msg.sender]);
+        emit Withdraw(token, msg.sender, amount, tokenList[token][msg.sender][channelId]);
     }
 
+    struct AdminWithdrawParam {
+        address user;
+        address token;
+        address feeAccount;
+        address channelFeeAccount;
+        uint256 amount;
+        uint256 nonce;
+        uint256 fee;
+        uint256 channelFee;
+        uint256 channelId;
+    }
 
     /**
     * admin withdraw according to user's signed withdraw info
@@ -183,40 +203,51 @@ contract R1Exchange is SafeMath, Ownable {
     * [0] user
     * [1] token
     * [2] feeAccount
+    * [3] channelFeeAccount
     * values:
     * [0] amount
     * [1] nonce
     * [2] fee
+    * [3] channelFee
     **/
-    function adminWithdraw(address[3] addresses, uint256[3] values, uint8 v, bytes32 r, bytes32 s)
+    function adminWithdraw(address[4] addresses, uint256[5] values,  uint8 v, bytes32 r, bytes32 s)
     public
     onlyAdmin
     isFeeAccount(addresses[2])
     {
-        address user = addresses[0];
-        address token = addresses[1];
-        address feeAccount = addresses[2];
-        uint256 amount = values[0];
-        uint256 nonce = values[1];
-        uint256 fee = values[2];
-        require(amount <= tokenList[token][user]);
-        fee = checkFee(amount, fee);
+        AdminWithdrawParam memory param = AdminWithdrawParam({
+            user : addresses[0],
+            token : addresses[1],
+            feeAccount : addresses[2],
+            channelFeeAccount : addresses[3],
+            amount : values[0],
+            nonce : values[1],
+            fee : values[2],
+            channelFee : values[3],
+            channelId : values[4]
+        });
 
-        bytes32 hash = keccak256(this, user, token, amount, nonce);
+        require(param.amount <= tokenList[param.token][param.user][param.channelId]);
+        param.fee = checkFee(param.amount, param.fee);
+        param.channelFee = checkFee(param.amount, param.channelFee);
+
+        bytes32 hash = keccak256(this, param.user, param.token, param.amount, param.nonce, param.feeAccount, param.channelFeeAccount, param.channelId);
         require(!withdrawn[hash]);
         withdrawn[hash] = true;
-        require(ecrecover(keccak256("\x19Ethereum Signed Message:\n32", hash), v, r, s) == user);
+        require(ecrecover(keccak256("\x19Ethereum Signed Message:\n32", hash), v, r, s) == param.user);
 
-        tokenList[token][user] = safeSub(tokenList[token][user], amount);
-        tokenList[token][feeAccount] = safeAdd(tokenList[token][feeAccount], fee);
+        tokenList[param.token][param.user][param.channelId] = safeSub(tokenList[param.token][param.user][param.channelId], param.amount);
+        tokenList[param.token][param.feeAccount][SYSADM_CHANNEL_ID] = safeAdd(tokenList[param.token][param.feeAccount][SYSADM_CHANNEL_ID], param.fee);
+        tokenList[param.token][param.channelFeeAccount][param.channelId] = safeAdd(tokenList[param.token][param.channelFeeAccount][param.channelId], param.channelFee);
 
-        amount = safeSub(amount, fee);
-        if (token == 0) {//withdraw ether
-            require(user.send(amount));
+        param.amount = safeSub(param.amount, param.fee);
+        param.amount = safeSub(param.amount, param.channelFee);
+        if (param.token == 0) {//withdraw ether
+            require(param.user.send(param.amount));
         } else {//withdraw token
-            require(Token(token).transfer(user, amount));
+            require(Token(param.token).transfer(param.user, param.amount));
         }
-        Withdraw(token, user, amount, tokenList[token][user]);
+        emit Withdraw(param.token, param.user, param.amount, tokenList[param.token][param.user][param.channelId]);
     }
 
     function checkFee(uint256 amount, uint256 fee) private returns (uint256){
@@ -227,13 +258,12 @@ contract R1Exchange is SafeMath, Ownable {
         return maxFee;
     }
 
-    function getOrderHash(address tokenBuy, uint256 amountBuy, address tokenSell, uint256 amountSell, address base, uint256 expires, uint256 nonce, address feeToken) public view returns (bytes32) {
-        return keccak256(this, tokenBuy, amountBuy, tokenSell, amountSell, base, expires, nonce, feeToken);
+    function getOrderHash(address tokenBuy, uint256 amountBuy, address tokenSell, uint256 amountSell, address base, uint256 expires, uint256 nonce, address feeToken, address channelFeeAccount, uint256 channelFee, uint256 channelId) public view returns (bytes32) {
+        return keccak256(this, tokenBuy, amountBuy, tokenSell, amountSell, base, expires, nonce, feeToken, channelFeeAccount, channelFee, channelId);
     }
 
-
-    function balanceOf(address token, address user) public constant returns (uint256) {
-        return tokenList[token][user];
+    function balanceOf(address token, address user, uint256 channelId) public constant returns (uint256) {
+        return tokenList[token][user][channelId];
     }
 
     struct Order {
@@ -248,6 +278,9 @@ contract R1Exchange is SafeMath, Ownable {
         bytes32 orderHash;
         address baseToken;
         address feeToken;//0:default;others:payed with erc-20 token
+        address channelFeeAccount;
+        uint256 channelFee;
+        uint256 channelId;
     }
 
     /**
@@ -266,6 +299,8 @@ contract R1Exchange is SafeMath, Ownable {
     * [8]:maker feeToken .
     * [9]:taker feeToken .
     * [10]:feeAccount
+    * [11]:makerBrokerAccount
+    * [12]:takerBrokerAccount
     * values:
     * [0]:maker amountBuy
     * [1]:taker amountBuy
@@ -278,11 +313,15 @@ contract R1Exchange is SafeMath, Ownable {
     * [8]:maker nonce
     * [9]:taker nonce
     * [10]:tradeAmount of token
+    * [11]:makerBrokerFee
+    * [12]:takerBrokerFee
+    * [13]:makerBrokerId
+    * [14]:takerBrokerId
     * v,r,s:maker and taker's signature
     **/
     function trade(
-        address[11] addresses,
-        uint256[11] values,
+        address[13] addresses,
+        uint256[15] values,
         uint8[2] v,
         bytes32[2] r,
         bytes32[2] s
@@ -302,7 +341,10 @@ contract R1Exchange is SafeMath, Ownable {
             nonce : values[8],
             orderHash : 0,
             baseToken : addresses[6],
-            feeToken : addresses[8]
+            feeToken : addresses[8],
+            channelFeeAccount : addresses[11],
+            channelFee : values[11],
+            channelId : values[13]
             });
         Order memory takerOrder = Order({
             tokenBuy : addresses[1],
@@ -315,27 +357,30 @@ contract R1Exchange is SafeMath, Ownable {
             nonce : values[9],
             orderHash : 0,
             baseToken : addresses[7],
-            feeToken : addresses[9]
+            feeToken : addresses[9],
+            channelFeeAccount : addresses[12],
+            channelFee : values[12],
+            channelId : values[14]
             });
         uint256 tradeAmount = values[10];
 
         //check expires
         require(makerOrder.expires >= block.number && takerOrder.expires >= block.number);
         //check order nonce canceled
-        require(makerOrder.nonce >= canceled[makerOrder.user] && takerOrder.nonce >= canceled[takerOrder.user]);
+        require(makerOrder.nonce >= canceled[makerOrder.user][makerOrder.channelId] && takerOrder.nonce >= canceled[takerOrder.user][takerOrder.channelId]);
         //make sure both is the same trade pair
         require(makerOrder.baseToken == takerOrder.baseToken && makerOrder.tokenBuy == takerOrder.tokenSell && makerOrder.tokenSell == takerOrder.tokenBuy);
         require(takerOrder.baseToken == takerOrder.tokenBuy || takerOrder.baseToken == takerOrder.tokenSell);
 
-        makerOrder.orderHash = getOrderHash(makerOrder.tokenBuy, makerOrder.amountBuy, makerOrder.tokenSell, makerOrder.amountSell, makerOrder.baseToken, makerOrder.expires, makerOrder.nonce, makerOrder.feeToken);
-        takerOrder.orderHash = getOrderHash(takerOrder.tokenBuy, takerOrder.amountBuy, takerOrder.tokenSell, takerOrder.amountSell, takerOrder.baseToken, takerOrder.expires, takerOrder.nonce, takerOrder.feeToken);
+        makerOrder.orderHash = getOrderHash(makerOrder.tokenBuy, makerOrder.amountBuy, makerOrder.tokenSell, makerOrder.amountSell, makerOrder.baseToken, makerOrder.expires, makerOrder.nonce, makerOrder.feeToken, makerOrder.channelFeeAccount, makerOrder.channelFee , makerOrder.channelId);
+        takerOrder.orderHash = getOrderHash(takerOrder.tokenBuy, takerOrder.amountBuy, takerOrder.tokenSell, takerOrder.amountSell, takerOrder.baseToken, takerOrder.expires, takerOrder.nonce, takerOrder.feeToken, takerOrder.channelFeeAccount, takerOrder.channelFee , takerOrder.channelId);
 
         require(ecrecover(keccak256("\x19Ethereum Signed Message:\n32", makerOrder.orderHash), v[0], r[0], s[0]) == makerOrder.user);
         require(ecrecover(keccak256("\x19Ethereum Signed Message:\n32", takerOrder.orderHash), v[1], r[1], s[1]) == takerOrder.user);
 
         balance(makerOrder, takerOrder, addresses[10], tradeAmount);
         //emit event
-        Trade(makerOrder.user, takerOrder.user, tradeAmount, makerOrder.fee, takerOrder.fee, makerOrder.nonce, takerOrder.nonce);
+        emit Trade(makerOrder.user, takerOrder.user, tradeAmount, makerOrder.fee, takerOrder.fee, makerOrder.nonce, takerOrder.nonce);
     }
 
     function balance(Order makerOrder, Order takerOrder, address feeAccount, uint256 tradeAmount) internal {
@@ -349,60 +394,64 @@ contract R1Exchange is SafeMath, Ownable {
         uint256 takerSell = 0;
         if (takerOrder.baseToken == takerOrder.tokenBuy) {
             //taker sell tokens
-            uint256 makerAmount = safeSub(makerOrder.amountBuy, orderFilled[makerOrder.user][makerOrder.orderHash]);
-            uint256 takerAmount = safeSub(takerOrder.amountSell, orderFilled[takerOrder.user][takerOrder.orderHash]);
+            uint256 makerAmount = safeSub(makerOrder.amountBuy, orderFilled[makerOrder.user][makerOrder.channelId][makerOrder.orderHash]);
+            uint256 takerAmount = safeSub(takerOrder.amountSell, orderFilled[takerOrder.user][takerOrder.channelId][takerOrder.orderHash]);
             require(tradeAmount > 0 && tradeAmount <= makerAmount && tradeAmount <= takerAmount);
 
             takerSell = tradeAmount;
             takerBuy = safeMul(makerOrder.amountSell, takerSell) / makerOrder.amountBuy;
-            orderFilled[takerOrder.user][takerOrder.orderHash] = safeAdd(orderFilled[takerOrder.user][takerOrder.orderHash], takerSell);
-            orderFilled[makerOrder.user][makerOrder.orderHash] = safeAdd(orderFilled[makerOrder.user][makerOrder.orderHash], takerSell);
+            orderFilled[takerOrder.user][takerOrder.channelId][takerOrder.orderHash] = safeAdd(orderFilled[takerOrder.user][takerOrder.channelId][takerOrder.orderHash], takerSell);
+            orderFilled[makerOrder.user][makerOrder.channelId][makerOrder.orderHash] = safeAdd(orderFilled[makerOrder.user][makerOrder.channelId][makerOrder.orderHash], takerSell);
         } else {
             // taker buy tokens
-            takerAmount = safeSub(takerOrder.amountBuy, orderFilled[takerOrder.user][takerOrder.orderHash]);
-            makerAmount = safeSub(makerOrder.amountSell, orderFilled[makerOrder.user][makerOrder.orderHash]);
+            takerAmount = safeSub(takerOrder.amountBuy, orderFilled[takerOrder.user][takerOrder.channelId][takerOrder.orderHash]);
+            makerAmount = safeSub(makerOrder.amountSell, orderFilled[makerOrder.user][makerOrder.channelId][makerOrder.orderHash]);
             require(tradeAmount > 0 && tradeAmount <= makerAmount && tradeAmount <= takerAmount);
             takerBuy = tradeAmount;
             takerSell = safeMul(makerOrder.amountBuy, takerBuy) / makerOrder.amountSell;
-            orderFilled[takerOrder.user][takerOrder.orderHash] = safeAdd(orderFilled[takerOrder.user][takerOrder.orderHash], takerBuy);
-            orderFilled[makerOrder.user][makerOrder.orderHash] = safeAdd(orderFilled[makerOrder.user][makerOrder.orderHash], takerBuy);
+            orderFilled[takerOrder.user][takerOrder.channelId][takerOrder.orderHash] = safeAdd(orderFilled[takerOrder.user][takerOrder.channelId][takerOrder.orderHash], takerBuy);
+            orderFilled[makerOrder.user][makerOrder.channelId][makerOrder.orderHash] = safeAdd(orderFilled[makerOrder.user][makerOrder.channelId][makerOrder.orderHash], takerBuy);
         }
 
-        uint256 makerFee = chargeFee(makerOrder, feeAccount, takerSell);
-        uint256 takerFee = chargeFee(takerOrder, feeAccount, takerBuy);
-
         //taker give tokens
-        tokenList[takerOrder.tokenSell][takerOrder.user] = safeSub(tokenList[takerOrder.tokenSell][takerOrder.user], takerSell);
+        tokenList[takerOrder.tokenSell][takerOrder.user][takerOrder.channelId] = safeSub(tokenList[takerOrder.tokenSell][takerOrder.user][takerOrder.channelId], takerSell);
         //taker get tokens
-        tokenList[takerOrder.tokenBuy][takerOrder.user] = safeAdd(tokenList[takerOrder.tokenBuy][takerOrder.user], safeSub(takerBuy, takerFee));
+        tokenList[takerOrder.tokenBuy][takerOrder.user][takerOrder.channelId] = safeAdd(tokenList[takerOrder.tokenBuy][takerOrder.user][takerOrder.channelId], takerBuy);
         //maker give tokens
-        tokenList[makerOrder.tokenSell][makerOrder.user] = safeSub(tokenList[makerOrder.tokenSell][makerOrder.user], takerBuy);
+        tokenList[makerOrder.tokenSell][makerOrder.user][makerOrder.channelId] = safeSub(tokenList[makerOrder.tokenSell][makerOrder.user][makerOrder.channelId], takerBuy);
         //maker get tokens
-        tokenList[makerOrder.tokenBuy][makerOrder.user] = safeAdd(tokenList[makerOrder.tokenBuy][makerOrder.user], safeSub(takerSell, makerFee));
+        tokenList[makerOrder.tokenBuy][makerOrder.user][makerOrder.channelId] = safeAdd(tokenList[makerOrder.tokenBuy][makerOrder.user][makerOrder.channelId], takerSell);
+
+        chargeFee(makerOrder, feeAccount, takerSell);
+        chargeFee(takerOrder, feeAccount, takerBuy);
     }
 
     ///charge fees.fee can be payed as other erc20 token or the tokens that user get
     ///returns:fees to reduce from the user's tokenBuy
     function chargeFee(Order order, address feeAccount, uint256 amountBuy) internal returns (uint256){
-        uint256 classicFee = 0;
+        uint256 totalFee = 0;
         if (order.feeToken != 0) {
             ///use erc-20 token as fee .
             //make sure the user has enough tokens
-            require(order.fee <= tokenList[order.feeToken][order.user]);
-            tokenList[order.feeToken][feeAccount] = safeAdd(tokenList[order.feeToken][feeAccount], order.fee);
-            tokenList[order.feeToken][order.user] = safeSub(tokenList[order.feeToken][order.user], order.fee);
+            totalFee = safeAdd(order.fee, order.channelFee);
+            require(totalFee <= tokenList[order.feeToken][order.user][order.channelId]);
+            tokenList[order.feeToken][feeAccount][SYSADM_CHANNEL_ID] = safeAdd(tokenList[order.feeToken][feeAccount][SYSADM_CHANNEL_ID], order.fee);
+            tokenList[order.feeToken][order.channelFeeAccount][order.channelId] = safeAdd(tokenList[order.feeToken][order.channelFeeAccount][order.channelId], order.fee);
+            tokenList[order.feeToken][order.user][order.channelId] = safeSub(tokenList[order.feeToken][order.user][order.channelId], totalFee);
         } else {
             order.fee = checkFee(amountBuy, order.fee);
-            classicFee = order.fee;
-            tokenList[order.tokenBuy][feeAccount] = safeAdd(tokenList[order.tokenBuy][feeAccount], order.fee);
+            order.channelFee = checkFee(amountBuy, order.channelFee);
+            totalFee = safeAdd(order.fee, order.channelFee);
+            tokenList[order.tokenBuy][feeAccount][order.channelId] = safeAdd(tokenList[order.tokenBuy][feeAccount][order.channelId], order.fee);
+            tokenList[order.tokenBuy][order.channelFeeAccount][order.channelId] = safeAdd(tokenList[order.tokenBuy][order.channelFeeAccount][order.channelId], order.fee);
+            tokenList[order.tokenBuy][order.user][order.channelId] = safeSub(tokenList[order.tokenBuy][order.user][order.channelId], totalFee);
         }
-        return classicFee;
     }
 
 
     function batchTrade(
-        address[11][] addresses,
-        uint256[11][] values,
+        address[13][] addresses,
+        uint256[15][] values,
         uint8[2][] v,
         bytes32[2][] r,
         bytes32[2][] s
@@ -413,18 +462,20 @@ contract R1Exchange is SafeMath, Ownable {
     }
 
     ///help to refund token to users.this method is called when contract needs updating
-    function refund(address user, address[] tokens) public onlyAdmin {
+    function refund(address user, address[] tokens, uint[] channelIds) public onlyAdmin {
         for (uint i = 0; i < tokens.length; i++) {
             address token = tokens[i];
-            uint256 amount = tokenList[token][user];
-            if (amount > 0) {
-                tokenList[token][user] = 0;
-                if (token == 0) {//withdraw ether
-                    require(user.send(amount));
-                } else {//withdraw token
-                    require(Token(token).transfer(user, amount));
+            for (uint j = 0; j < channelIds.length; j++) {
+                uint256 amount = tokenList[token][user][j];
+                if (amount > 0) {
+                    tokenList[token][user][j] = 0;
+                    if (token == 0) {//withdraw ether
+                        require(user.send(amount));
+                    } else {//withdraw token
+                        require(Token(token).transfer(user, amount));
+                    }
+                    emit Withdraw(token, user, amount, tokenList[token][user][j]);
                 }
-                Withdraw(token, user, amount, tokenList[token][user]);
             }
         }
     }
