@@ -95,15 +95,13 @@ contract R1Exchange is SafeMath, Ownable {
         }
     }
 
-    function deposit(uint256 channelId) public payable {
-        require(channelId >= CHANNEL_START_ID);
-        tokenList[0][msg.sender][channelId] = safeAdd(tokenList[0][msg.sender][channelId], msg.value);
-        emit Deposit(0, msg.sender, msg.value, tokenList[0][msg.sender][channelId]);
+    function deposit(uint256 amount, uint256 channelId) public payable {
+        tokenList[0][msg.sender][channelId] = safeAdd(tokenList[0][msg.sender][channelId], amount);
+        emit Deposit(0, msg.sender, amount, tokenList[0][msg.sender][channelId]);
     }
 
     function depositToken(address token, uint256 amount, uint256 channelId) public {
         require(token != 0);
-        require(channelId >= CHANNEL_START_ID);
         tokenList[token][msg.sender][channelId] = safeAdd(tokenList[token][msg.sender][channelId], amount);
         require(Token(token).transferFrom(msg.sender, this, amount));
         emit Deposit(token, msg.sender, amount, tokenList[token][msg.sender][channelId]);
@@ -111,7 +109,6 @@ contract R1Exchange is SafeMath, Ownable {
 
     function depositTo(address token, address to, uint256 amount, uint256 channelId) public {
         require(token != 0 && to != 0);
-        require(channelId >= CHANNEL_START_ID);
         tokenList[token][to][channelId] = safeAdd(tokenList[token][to][channelId], amount);
         require(Token(token).transferFrom(msg.sender, this, amount));
         emit DepositTo(token, msg.sender, to, amount, tokenList[token][to][channelId]);
@@ -119,7 +116,6 @@ contract R1Exchange is SafeMath, Ownable {
 
     function batchDepositTo(address token, address[] to, uint256[] amount, uint256 channelId) public {
         require(to.length == amount.length && to.length <= 200);
-        require(channelId >= CHANNEL_START_ID);
         for (uint i = 0; i < to.length; i++) {
             depositTo(token, to[i], amount[i], channelId);
         }
@@ -209,6 +205,7 @@ contract R1Exchange is SafeMath, Ownable {
     * [1] nonce
     * [2] fee
     * [3] channelFee
+    * [4] channelId
     **/
     function adminWithdraw(address[4] addresses, uint256[5] values,  uint8 v, bytes32 r, bytes32 s)
     public
@@ -299,8 +296,8 @@ contract R1Exchange is SafeMath, Ownable {
     * [8]:maker feeToken .
     * [9]:taker feeToken .
     * [10]:feeAccount
-    * [11]:makerBrokerAccount
-    * [12]:takerBrokerAccount
+    * [11]:makerChannelAccount
+    * [12]:takerChannelAccount
     * values:
     * [0]:maker amountBuy
     * [1]:taker amountBuy
@@ -313,10 +310,10 @@ contract R1Exchange is SafeMath, Ownable {
     * [8]:maker nonce
     * [9]:taker nonce
     * [10]:tradeAmount of token
-    * [11]:makerBrokerFee
-    * [12]:takerBrokerFee
-    * [13]:makerBrokerId
-    * [14]:takerBrokerId
+    * [11]:makerChannelFee
+    * [12]:takerChannelFee
+    * [13]:makerChannelId
+    * [14]:takerChannelId
     * v,r,s:maker and taker's signature
     **/
     function trade(
@@ -442,7 +439,7 @@ contract R1Exchange is SafeMath, Ownable {
             order.fee = checkFee(amountBuy, order.fee);
             order.channelFee = checkFee(amountBuy, order.channelFee);
             totalFee = safeAdd(order.fee, order.channelFee);
-            tokenList[order.tokenBuy][feeAccount][order.channelId] = safeAdd(tokenList[order.tokenBuy][feeAccount][order.channelId], order.fee);
+            tokenList[order.tokenBuy][feeAccount][SYSADM_CHANNEL_ID] = safeAdd(tokenList[order.tokenBuy][feeAccount][SYSADM_CHANNEL_ID], order.fee);
             tokenList[order.tokenBuy][order.channelFeeAccount][order.channelId] = safeAdd(tokenList[order.tokenBuy][order.channelFeeAccount][order.channelId], order.fee);
             tokenList[order.tokenBuy][order.user][order.channelId] = safeSub(tokenList[order.tokenBuy][order.user][order.channelId], totalFee);
         }
@@ -462,19 +459,20 @@ contract R1Exchange is SafeMath, Ownable {
     }
 
     ///help to refund token to users.this method is called when contract needs updating
-    function refund(address user, address[] tokens, uint[] channelIds) public onlyAdmin {
+    function refund(address user, address[] tokens, uint256[] channelIds) public onlyAdmin {
         for (uint i = 0; i < tokens.length; i++) {
             address token = tokens[i];
             for (uint j = 0; j < channelIds.length; j++) {
-                uint256 amount = tokenList[token][user][j];
+                uint256 channelId = channelIds[j];
+                uint256 amount = tokenList[token][user][channelId];
                 if (amount > 0) {
-                    tokenList[token][user][j] = 0;
+                    tokenList[token][user][channelId] = 0;
                     if (token == 0) {//withdraw ether
                         require(user.send(amount));
                     } else {//withdraw token
                         require(Token(token).transfer(user, amount));
                     }
-                    emit Withdraw(token, user, amount, tokenList[token][user][j]);
+                    emit Withdraw(token, user, amount, tokenList[token][user][channelId]);
                 }
             }
         }
