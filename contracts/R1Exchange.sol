@@ -22,8 +22,7 @@ contract R1Exchange is SafeMath, Ownable {
     uint public feeRate = 10;
     bool public withdrawEnabled = false;
     bool public stop = false;
-    uint256 public CHANNEL_START_ID = 100;
-    uint256 private SYSADM_CHANNEL_ID = 1;
+    uint256 private DEFAULT_CHANNEL_ID = 0;
 
     event Deposit(address indexed token, address indexed user, uint256 amount, uint256 balance);
     event DepositTo(address indexed token, address indexed from, address indexed user, uint256 amount, uint256 balance);
@@ -95,9 +94,9 @@ contract R1Exchange is SafeMath, Ownable {
         }
     }
 
-    function deposit(uint256 amount, uint256 channelId) public payable {
-        tokenList[0][msg.sender][channelId] = safeAdd(tokenList[0][msg.sender][channelId], amount);
-        emit Deposit(0, msg.sender, amount, tokenList[0][msg.sender][channelId]);
+    function deposit(uint256 channelId) public payable {
+        tokenList[0][msg.sender][channelId] = safeAdd(tokenList[0][msg.sender][channelId], msg.value);
+        emit Deposit(0, msg.sender, msg.value, tokenList[0][msg.sender][channelId]);
     }
 
     function depositToken(address token, uint256 amount, uint256 channelId) public {
@@ -234,7 +233,7 @@ contract R1Exchange is SafeMath, Ownable {
         require(ecrecover(keccak256("\x19Ethereum Signed Message:\n32", hash), v, r, s) == param.user);
 
         tokenList[param.token][param.user][param.channelId] = safeSub(tokenList[param.token][param.user][param.channelId], param.amount);
-        tokenList[param.token][param.feeAccount][SYSADM_CHANNEL_ID] = safeAdd(tokenList[param.token][param.feeAccount][SYSADM_CHANNEL_ID], param.fee);
+        tokenList[param.token][param.feeAccount][DEFAULT_CHANNEL_ID] = safeAdd(tokenList[param.token][param.feeAccount][DEFAULT_CHANNEL_ID], param.fee);
         tokenList[param.token][param.channelFeeAccount][param.channelId] = safeAdd(tokenList[param.token][param.channelFeeAccount][param.channelId], param.channelFee);
 
         param.amount = safeSub(param.amount, param.fee);
@@ -432,14 +431,14 @@ contract R1Exchange is SafeMath, Ownable {
             //make sure the user has enough tokens
             totalFee = safeAdd(order.fee, order.channelFee);
             require(totalFee <= tokenList[order.feeToken][order.user][order.channelId]);
-            tokenList[order.feeToken][feeAccount][SYSADM_CHANNEL_ID] = safeAdd(tokenList[order.feeToken][feeAccount][SYSADM_CHANNEL_ID], order.fee);
+            tokenList[order.feeToken][feeAccount][DEFAULT_CHANNEL_ID] = safeAdd(tokenList[order.feeToken][feeAccount][DEFAULT_CHANNEL_ID], order.fee);
             tokenList[order.feeToken][order.channelFeeAccount][order.channelId] = safeAdd(tokenList[order.feeToken][order.channelFeeAccount][order.channelId], order.fee);
             tokenList[order.feeToken][order.user][order.channelId] = safeSub(tokenList[order.feeToken][order.user][order.channelId], totalFee);
         } else {
             order.fee = checkFee(amountBuy, order.fee);
             order.channelFee = checkFee(amountBuy, order.channelFee);
             totalFee = safeAdd(order.fee, order.channelFee);
-            tokenList[order.tokenBuy][feeAccount][SYSADM_CHANNEL_ID] = safeAdd(tokenList[order.tokenBuy][feeAccount][SYSADM_CHANNEL_ID], order.fee);
+            tokenList[order.tokenBuy][feeAccount][DEFAULT_CHANNEL_ID] = safeAdd(tokenList[order.tokenBuy][feeAccount][DEFAULT_CHANNEL_ID], order.fee);
             tokenList[order.tokenBuy][order.channelFeeAccount][order.channelId] = safeAdd(tokenList[order.tokenBuy][order.channelFeeAccount][order.channelId], order.fee);
             tokenList[order.tokenBuy][order.user][order.channelId] = safeSub(tokenList[order.tokenBuy][order.user][order.channelId], totalFee);
         }
