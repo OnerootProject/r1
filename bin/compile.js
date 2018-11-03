@@ -1,7 +1,7 @@
 var solc = require('solc')
 var fs = require("fs")
 var abi = require('ethereumjs-abi')
-var source = fs.readFileSync("./build/flattened/R1Exchange_flat.sol").toString()
+var source = fs.readFileSync(__dirname +"/../build/flattened/R1Exchange_flat.sol").toString()
 
 // console.log("abi:",source.abi)
 // console.log("bytecode:",source.bytecode)
@@ -18,8 +18,8 @@ for (var contractName in output.contracts) {
 params = packValues(["address"], ["0x7Da8470794fD52463956D8deeD55eDec9fA6C662"])
 console.log(params)
 
-// console.log("bytecode:", output.contracts["ex.sol:R1Exchange"].bytecode + params)
-// console.log("abi:", "'"+output.contracts["ex.sol:R1Exchange"].interface+"'")
+console.log("bytecode:", output.contracts["ex.sol:R1Exchange"].bytecode + params)
+console.log("abi:", "'"+output.contracts["ex.sol:R1Exchange"].interface+"'")
 
 function packValues(types, values) {
     let v = ""

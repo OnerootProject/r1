@@ -1,9 +1,10 @@
 var RNTToken = artifacts.require("HumanStandardToken"); //token contract
 var Exchange = artifacts.require("R1Exchange"); // real exchange contract
 var sleep = require('sleep');
-var Data = require('./Data')
-var Log = require('./LogConsole')
-var JsonUtils = require('./JsonUtils')
+var Data = require('./util/Data')
+var Order=require('./util/Order')
+var Log = require('../util/LogConsole')
+var JsonUtils = require('../util/JsonUtils')
 var abi = require('ethereumjs-abi')
 var printData = false;
 var exchangeBalance = {
@@ -59,6 +60,10 @@ contract("Exchange", function (accounts) {
         // assert.equal(result.receipt.status, 1, " setAdmin failed!")
         result = await exchangeInstance.setFeeAccount(feeAccount, true, {from: owner})
         // assert.equal(result.receipt.status, 1, " setFeeAccount failed!")
+    })
+
+    afterEach(async () => {
+
     })
 
     it("init token:supply should be 400000000 !", async () => {
@@ -175,23 +180,51 @@ contract("Exchange", function (accounts) {
     it("refund", async () => {
         await tokenInstance.approve(exchangeInstance.address, web3.toWei(1000000000000, "ether"), {from: maker})
         await tokenInstance.transfer(maker, web3.toWei(500, "ether"), {from: owner})
+
+        await exchangeInstance.deposit(channel1Id, {value: web3.toWei(1, "ether"),from: maker})
         await exchangeInstance.depositToken(tokenInstance.address, web3.toWei(10, "ether"), channel1Id, {from: maker})
+        await exchangeInstance.depositToken(tokenInstance.address, web3.toWei(10, "ether"), channel2Id, {from: maker})
 
-        await exchangeInstance.deposit(channel1Id, {value: web3.toWei(initEth, "ether"),from: maker})
+        balance = await exchangeInstance.balanceOf(0, maker, channel1Id)
+        Log.debug('eth before balance refund:', web3.fromWei(balance.valueOf()));
+        assert.equal(balance.valueOf()>0, true, "eth refund channel1Id failed!")
 
-        result = await exchangeInstance.refund(maker, [tokenInstance.address],[channel1Id], {from: admin})
+        balance = await exchangeInstance.balanceOf(tokenInstance.address, maker, channel1Id)
+        Log.debug('token before balance refund:', web3.fromWei(balance.valueOf()))
+        assert.equal(balance.valueOf()>0, true, "token refund channel1Id failed!")
+
+        balance = await exchangeInstance.balanceOf(tokenInstance.address, maker, channel2Id)
+        Log.debug('eth before balance refund:', web3.fromWei(balance.valueOf()));
+        assert.equal(balance.valueOf()>0, true, "token refund channel2Id failed!")
+
+
+        result = await exchangeInstance.refund(maker, [0, tokenInstance.address,tokenInstance.address],[channel1Id, channel1Id, channel2Id], {from: admin})
         // Log.debug('result:', result);
         assert.equal(result.receipt.status, 1, "refund failed");
 
-        balance = await exchangeInstance.balanceOf(tokenInstance.address, maker, channel1Id)
-        Log.debug('token balance refund:', web3.fromWei(balance.valueOf()), tokenInstance.address)
-        assert.equal(web3.fromWei(balance.valueOf()), 0, "token refund channel1Id failed!")
 
-        balance = await exchangeInstance.balanceOf(0, maker, channel2Id)
-        Log.debug('eth balance refund:', web3.fromWei(balance.valueOf()));
+        balance = await exchangeInstance.balanceOf(0, maker, channel1Id)
+        Log.debug('eth after balance refund:', web3.fromWei(balance.valueOf()));
         assert.equal(web3.fromWei(balance.valueOf()), 0, "eth refund channel1Id failed!")
 
+        balance = await exchangeInstance.balanceOf(tokenInstance.address, maker, channel1Id)
+        Log.debug('token after balance refund:', web3.fromWei(balance.valueOf()))
+        assert.equal(web3.fromWei(balance.valueOf()), 0, "token refund channel1Id failed!")
+
+        balance = await exchangeInstance.balanceOf(tokenInstance.address, maker, channel2Id)
+        Log.debug('eth after balance refund:', web3.fromWei(balance.valueOf()));
+        assert.equal(web3.fromWei(balance.valueOf()), 0, "token refund channel2Id failed!")
+
     })
+
+    testTrade();
+    
+    testTradeException()
+    //
+
+});
+
+function testTrade() {
 
     it("trade:sell1*sell2 = buy1*buy2", async () => {
         let pair = {
@@ -240,7 +273,7 @@ contract("Exchange", function (accounts) {
 
         await signOrder(exchangeInstance, makerOrder)
         await signOrder(exchangeInstance, takerOrder)
-        let params = genParams(makerOrder, takerOrder, tradeAmount, feeAccount)
+        let params = Order.genParams(makerOrder, takerOrder, tradeAmount, feeAccount)
 
         await depositForTrade(exchangeInstance, tokenInstance, maker, taker, channel1Id, channel2Id);
 
@@ -272,67 +305,64 @@ contract("Exchange", function (accounts) {
     it("test equal price", async () => {
         let src = "./test/data/data.csv"
         let res = await Data.readData(src, 0, tokenInstance.address, printData)
-        await takerSell(exchangeInstance, tokenInstance, exchangeBalance, maker, taker, res.sells, res.buys, res.sellOrders, res.buyOrders, res.expeted, [web3.toWei("10", "ether"), web3.toWei("20", "ether")])
+        await bacthTrade(exchangeInstance, tokenInstance, exchangeBalance, maker, taker, res.sells, res.buys, res.sellOrders, res.buyOrders, res.expeted, [web3.toWei("10", "ether"), web3.toWei("20", "ether")])
     })
 
     it("taker sell :takerAmount<=makerAmount", async () => {
         let src = "./test/data/data_taker_sell_2.csv"
         let res = await Data.readData(src, "0x0", tokenInstance.address, printData)
-        await takerSell(exchangeInstance, tokenInstance, exchangeBalance, maker, taker, res.sells, res.buys, res.sellOrders, res.buyOrders, res.expeted, [web3.toWei("10", "ether")])
+        await bacthTrade(exchangeInstance, tokenInstance, exchangeBalance, maker, taker, res.sells, res.buys, res.sellOrders, res.buyOrders, res.expeted, [web3.toWei("10", "ether")])
     })
 
     it("taker sell :takerAmount>makerAmount ", async () => {
         let src = "./test/data/data_taker_sell_1.csv"
         let res = await Data.readData(src, "0x0", tokenInstance.address, printData)
-        await takerSell(exchangeInstance, tokenInstance, exchangeBalance, maker, taker, res.sells, res.buys, res.sellOrders, res.buyOrders, res.expeted, [web3.toWei("10", "ether")])
+        await bacthTrade(exchangeInstance, tokenInstance, exchangeBalance, maker, taker, res.sells, res.buys, res.sellOrders, res.buyOrders, res.expeted, [web3.toWei("10", "ether")])
 
     })
 
     it("taker sell :buy remain <0 ", async () => {
         let src = "./test/data/data_taker_sell_3.csv"
         let res = await Data.readData(src, "0x0", tokenInstance.address, printData)
-        await takerSell(exchangeInstance, tokenInstance, exchangeBalance, maker, taker, res.sells, res.buys, res.sellOrders, res.buyOrders, res.expeted, [web3.toWei("15", "ether"), web3.toWei("10", "ether")])
+        await bacthTrade(exchangeInstance, tokenInstance, exchangeBalance, maker, taker, res.sells, res.buys, res.sellOrders, res.buyOrders, res.expeted, [web3.toWei("15", "ether"), web3.toWei("10", "ether")])
 
     })
 
     it("taker sell :multi sell  ", async () => {
         let src = "./test/data/data_taker_sell_4.csv"
         let res = await Data.readData(src, "0x0", tokenInstance.address, printData)
-        await takerSell(exchangeInstance, tokenInstance, exchangeBalance, maker, taker, res.sells, res.buys, res.sellOrders, res.buyOrders, res.expeted, [web3.toWei("10", "ether"), web3.toWei("10", "ether")])
+        await bacthTrade(exchangeInstance, tokenInstance, exchangeBalance, maker, taker, res.sells, res.buys, res.sellOrders, res.buyOrders, res.expeted, [web3.toWei("10", "ether"), web3.toWei("10", "ether")])
 
     })
 
     it("taker buy：takerAmount<=makerAmount ", async () => {
         let src = "./test/data/data_taker_buy_1.csv"
         let res = await Data.readData(src, "0x0", tokenInstance.address, printData)
-        await takerBuy(exchangeInstance, tokenInstance, exchangeBalance, maker, taker, res.sells, res.buys, res.sellOrders, res.buyOrders, res.expeted, [web3.toWei("10", "ether")])
+        await bacthTrade(exchangeInstance, tokenInstance, exchangeBalance, maker, taker, res.sells, res.buys, res.sellOrders, res.buyOrders, res.expeted, [web3.toWei("10", "ether")])
 
     })
 
     it("taker buy ：takerAmount>makerAmount ", async () => {
         let src = "./test/data/data_taker_buy_2.csv"
         let res = await Data.readData(src, "0x0", tokenInstance.address, printData)
-        await takerBuy(exchangeInstance, tokenInstance, exchangeBalance, maker, taker, res.sells, res.buys, res.sellOrders, res.buyOrders, res.expeted, [web3.toWei("10", "ether")])
+        await bacthTrade(exchangeInstance, tokenInstance, exchangeBalance, maker, taker, res.sells, res.buys, res.sellOrders, res.buyOrders, res.expeted, [web3.toWei("10", "ether")])
 
     })
 
     it("taker buy ：multi sell ", async () => {
         let src = "./test/data/data_taker_buy_3.csv"
         let res = await Data.readData(src, "0x0", tokenInstance.address, printData)
-        await takerBuy(exchangeInstance, tokenInstance, exchangeBalance, maker, taker, res.sells, res.buys, res.sellOrders, res.buyOrders, res.expeted, [web3.toWei("10", "ether"), web3.toWei("10", "ether")])
+        await bacthTrade(exchangeInstance, tokenInstance, exchangeBalance, maker, taker, res.sells, res.buys, res.sellOrders, res.buyOrders, res.expeted, [web3.toWei("10", "ether"), web3.toWei("10", "ether")])
 
     })
 
     it("test full", async () => {
         let src = "./test/data/data_full.csv"
         let res = await Data.readData(src, "0x0", tokenInstance.address, printData)
-        await takerSell(exchangeInstance, tokenInstance, exchangeBalance, maker, taker, res.sells, res.buys, res.sellOrders, res.buyOrders, res.expeted, [web3.toWei("10", "ether"), web3.toWei("10", "ether")])
+        await bacthTrade(exchangeInstance, tokenInstance, exchangeBalance, maker, taker, res.sells, res.buys, res.sellOrders, res.buyOrders, res.expeted, [web3.toWei("10", "ether"), web3.toWei("10", "ether")])
     })
 
     it("same user buy and sell", async () => {
-        let tokenInstance = await RNTToken.deployed()
-        let exchangeInstance = await Exchange.deployed()
-
         let pair = {
             baseToken: 0,
             token: tokenInstance.address
@@ -379,7 +409,7 @@ contract("Exchange", function (accounts) {
 
         await signOrder(exchangeInstance, makerOrder)
         await signOrder(exchangeInstance, takerOrder)
-        let params = genParams(makerOrder, takerOrder, tradeAmount, feeAccount)
+        let params = Order.genParams(makerOrder, takerOrder, tradeAmount, feeAccount)
 
         await depositForTrade(exchangeInstance, tokenInstance, maker, taker, channel1Id, channel1Id);
 
@@ -455,12 +485,16 @@ contract("Exchange", function (accounts) {
         //cancel this order
         await exchangeInstance.batchCancel([taker], [ram], channel1Id, {from: admin})
         // Log.debug("nonce", ram)
-        let params = genParams(makerOrder, takerOrder, tradeAmount)
+        let params = Order.genParams(makerOrder, takerOrder, tradeAmount)
         await exchangeInstance.trade(params[0], params[1], params[2], params[3], params[4], {from: admin})
             .catch((e) => assert.equal(e != null, true, "both order should be the same trade pair"))
 
     })
 
+}
+
+
+function testTradeException() {
 
     it("BugBH:", async () => {
         //bug:taker buy完全匹配多个maker sell的订单,交易失败
@@ -533,7 +567,7 @@ contract("Exchange", function (accounts) {
         await depositForTrade(exchangeInstance, tokenInstance, maker, taker, channel1Id, channel1Id);
         let beforeBalance, afterBalance
 
-        let params = genParams(makerOrder, takerOrder, tradeAmount, feeAccount)
+        let params = Order.genParams(makerOrder, takerOrder, tradeAmount, feeAccount)
         // get balance before trade
         Log.debug('beforeBalance')
         beforeBalance = await getBalanceForTrade(exchangeInstance, makerOrder, takerOrder, pair, feeAccount)
@@ -548,7 +582,7 @@ contract("Exchange", function (accounts) {
 
 
 
-        params = genParams(makerOrder2, takerOrder, tradeAmount, feeAccount)
+        params = Order.genParams(makerOrder2, takerOrder, tradeAmount, feeAccount)
         // get balance before trade
         Log.debug('beforeBalance')
         beforeBalance = await getBalanceForTrade(exchangeInstance, makerOrder2, takerOrder, pair, feeAccount)
@@ -564,17 +598,6 @@ contract("Exchange", function (accounts) {
     })
 
 
-
-    // //test exception condition
-    //
-    testException()
-    //
-
-});
-
-
-
-function testException() {
     let ram = Date.now()
     let makerOrder = {
         tokenBuy: 0,
@@ -613,6 +636,7 @@ function testException() {
         s: 0
     };
 
+
     // Log.debug("exp nonce", ram)
 
     it("error check:not same trade pair", async () => {
@@ -623,7 +647,7 @@ function testException() {
 
         await signOrder(exchangeInstance, makerOrder)
         await signOrder(exchangeInstance, takerOrder)
-        let params = genParams(makerOrder, takerOrder, web3.toWei("10", "ether"), feeAccount)
+        let params = Order.genParams(makerOrder, takerOrder, web3.toWei("10", "ether"), feeAccount)
 
         await depositForTrade(exchangeInstance, tokenInstance, maker, taker, channel1Id, channel1Id);
 
@@ -638,7 +662,7 @@ function testException() {
 
         await signOrder(exchangeInstance, makerOrder)
         await signOrder(exchangeInstance, takerOrder)
-        let params = genParams(makerOrder, takerOrder, web3.toWei("10", "ether"), feeAccount)
+        let params = Order.genParams(makerOrder, takerOrder, web3.toWei("10", "ether"), feeAccount)
 
         await depositForTrade(exchangeInstance, tokenInstance, maker, taker, channel1Id, channel1Id);
 
@@ -675,7 +699,7 @@ function testException() {
         takerOrder.amountBuy = web3.toWei("10", "ether")
         await signOrder(exchangeInstance, makerOrder)
         await signOrder(exchangeInstance, takerOrder)
-        let params = genParams(makerOrder, takerOrder, web3.toWei("10", "ether"), feeAccount)
+        let params = Order.genParams(makerOrder, takerOrder, web3.toWei("10", "ether"), feeAccount)
 
         await depositForTrade(exchangeInstance, tokenInstance, maker, taker, channel1Id, channel1Id);
 
@@ -683,7 +707,7 @@ function testException() {
             .catch((e) => assert.equal(e != null, true, "price not match"))
 
         //reverse taker and maker should trade failed
-        params = genParams(takerOrder, makerOrder)
+        params = Order.genParams(takerOrder, makerOrder)
         await exchangeInstance.trade(params[0], params[1], params[2], params[3], params[4], {from: admin})
             .catch((e) => assert.equal(e != null, true, "price not match"))
 
@@ -703,7 +727,7 @@ function testException() {
 
         await signOrder(exchangeInstance, makerOrder)
         await signOrder(exchangeInstance, takerOrder)
-        let params = genParams(makerOrder, takerOrder, web3.toWei("10", "ether"), feeAccount)
+        let params = Order.genParams(makerOrder, takerOrder, web3.toWei("10", "ether"), feeAccount)
 
         await depositForTrade(exchangeInstance, tokenInstance, maker, taker, channel1Id, channel1Id);
 
@@ -721,7 +745,7 @@ function testException() {
 
         await signOrder(exchangeInstance, makerOrder)
         await signOrder(exchangeInstance, takerOrder)
-        let params = genParams(makerOrder, takerOrder, web3.toWei("10", "ether"), feeAccount)
+        let params = Order.genParams(makerOrder, takerOrder, web3.toWei("10", "ether"), feeAccount)
 
 
         await depositForTrade(exchangeInstance, tokenInstance, maker, taker, channel1Id, channel1Id);
@@ -732,304 +756,7 @@ function testException() {
 
 }
 
-function genParams(makerOrder, takerOrder, tradeAmount, feeAccount) {
-    var addresses = [
-        makerOrder.tokenBuy,
-        takerOrder.tokenBuy,
-        makerOrder.tokenSell,
-        takerOrder.tokenSell,
-        makerOrder.user,
-        takerOrder.user,
-        makerOrder.baseToken,
-        takerOrder.baseToken,
-        makerOrder.feeToken,
-        takerOrder.feeToken,
-        feeAccount,
-        makerOrder.channelFeeAccount,
-        takerOrder.channelFeeAccount
-    ];
-    var values = [
-        makerOrder.amountBuy,
-        takerOrder.amountBuy,
-        makerOrder.amountSell,
-        takerOrder.amountSell,
-        makerOrder.fee,
-        takerOrder.fee,
-        makerOrder.expires,
-        takerOrder.expires,
-        makerOrder.nonce,
-        takerOrder.nonce,
-        tradeAmount,
-        makerOrder.channelFee,
-        takerOrder.channelFee,
-        makerOrder.channelId,
-        takerOrder.channelId
-    ];
-    var v = [makerOrder.v, takerOrder.v]
-    var r = [makerOrder.r, takerOrder.r]
-    var s = [makerOrder.s, takerOrder.s]
-
-    // Log.debug('addresses:',addresses)
-    // Log.debug('values:',values)
-    // Log.debug('v:',v)
-    // Log.debug('r:',r)
-    // Log.debug('s:',s)
-    return [addresses, values, v, r, s]
-}
-
-async function takerBuy(exchangeInstance, tokenInstance, exchangeBalance, maker, taker, sells, buys, sellOrders, buyOrders, expeted, tradeAmounts) {
-    let bo, so
-    var makerOrders = [], takerOrders = []
-    for (let i = 0; i < sellOrders.length; i++) {
-        bo = {
-            tokenBuy: sellOrders[i].tokenBuy,
-            tokenSell: sellOrders[i].tokenSell,
-            user: maker,
-            amountBuy: web3.toWei(sellOrders[i].amountBuy),
-            amountSell: web3.toWei(sellOrders[i].amountSell),
-            baseToken: 0,
-            expires: 5000000,
-            fee: 0,
-            nonce: Date.now(),
-            feeToken: 0,
-            channelFeeAccount : channel1FeeAccount,
-            channelFee: 0,
-            channelId: channel1Id,
-            v: 0,
-            r: 0,
-            s: 0
-        }
-        await signOrder(exchangeInstance, bo)
-        makerOrders.push(bo)
-    }
-    // Log.debug(makerOrders)
-    for (let i = 0; i < buyOrders.length; i++) {
-        so = {
-            tokenBuy: buyOrders[i].tokenBuy,
-            tokenSell: buyOrders[i].tokenSell,
-            user: taker,
-            amountBuy: web3.toWei(buyOrders[i].amountBuy),
-            amountSell: web3.toWei(buyOrders[i].amountSell),
-            baseToken: 0,
-            expires: 5000000,
-            fee: 0,
-            nonce: Date.now(),
-            feeToken: 0,
-            channelFeeAccount : channel1FeeAccount,
-            channelFee: 0,
-            channelId: channel1Id,
-            v: 0,
-            r: 0,
-            s: 0
-        }
-        await signOrder(exchangeInstance, so)
-        takerOrders.push(so)
-    }
-
-    ///match orders
-    var tradePair = []
-    for (let i = 0; i < makerOrders.length; i++) {
-        for (let j = 0; j < buys.length; j++) {
-            if (sells[i][0] <= buys[j][0]) {
-                //price matches
-                // if(sellOrders[i].amountSell>=buyOrders[j].amountBuy){
-                //amount enough
-                tradePair.push([makerOrders[i], takerOrders[j]])
-                // }
-            }
-        }
-    }
-
-    // Log.debug(tradePair)
-    Log.debug('tradePair.length:', tradePair.length)
-
-    ///submit trade on-chain
-    var adds = [], vals = [], vs = [], rs = [], ss = [], rns = []
-    for (let i = 0; i < tradePair.length; i++) {
-        let makerOrder = tradePair[i][0]
-        let takerOrder = tradePair[i][1]
-        let addresses = [
-            makerOrder.tokenBuy,
-            takerOrder.tokenBuy,
-            makerOrder.tokenSell,
-            takerOrder.tokenSell,
-            makerOrder.user,
-            takerOrder.user,
-            0,
-            0,
-            0,
-            0,
-            feeAccount,
-            makerOrder.channelFeeAccount,
-            takerOrder.channelFeeAccount
-        ];
-        let values = [
-            makerOrder.amountBuy,
-            takerOrder.amountBuy,
-            makerOrder.amountSell,
-            takerOrder.amountSell,
-            makerOrder.fee,
-            takerOrder.fee,
-            makerOrder.expires,
-            takerOrder.expires,
-            makerOrder.nonce,
-            takerOrder.nonce,
-            tradeAmounts[i],
-            makerOrder.channelFee,
-            takerOrder.channelFee,
-            makerOrder.channelId,
-            takerOrder.channelId
-        ];
-        let v = [makerOrder.v, takerOrder.v]
-        let r = [makerOrder.r, takerOrder.r]
-        let s = [makerOrder.s, takerOrder.s]
-        Log.debug('=========')
-        Log.debug(addresses,values,v,r,s)
-        adds.push(addresses)
-        vals.push(values)
-        vs.push(v)
-        rs.push(r)
-        ss.push(s)
-    }
-
-    let pair = {
-        baseToken: 0,
-        token: tokenInstance.address
-    }
-    await depositForTrade(exchangeInstance, tokenInstance, maker, taker, channel1Id, channel1Id);
-    // get balance before trade
-    Log.debug('beforeBalance:')
-    let beforeBalance = await getBalanceForTrade(exchangeInstance, bo, so, pair, feeAccount)
-
-    try {
-        let result = await exchangeInstance.batchTrade(adds, vals, vs, rs, ss, {from: admin})
-        assert.equal(result.receipt.status, 1, "batchTrade failed!")
-    }catch (e) {
-        Log.debug('batchTrade error:',e)
-        assert.equal(0,1, 'batchTrade error')
-    }
-
-
-    // get balance after trade
-    Log.debug('afterBalance:')
-    let afterBalance = await getBalanceForTrade(exchangeInstance, bo, so, pair, feeAccount)
-
-    console.log('expeted:',  expeted);
-    Log.debug(afterBalance.makerBaseBalance, beforeBalance.makerBaseBalance + expeted[0][1]);
-
-    assert.equal(afterBalance.makerBaseBalance, beforeBalance.makerBaseBalance + expeted[0][1], "maker's base token balance should be [" + afterBalance.makerBaseBalance + "]!")
-    assert.equal(afterBalance.takerBaseBalance, beforeBalance.takerBaseBalance + expeted[1][1], "taker's base token balance should be [" + afterBalance.takerBaseBalance + "]!")
-
-    assert.equal(afterBalance.makerTokenBalance, beforeBalance.makerTokenBalance + expeted[0][0], "maker's token balance should be [" + afterBalance.makerTokenBalance + "]!")
-    assert.equal(afterBalance.takerTokenBalance, beforeBalance.takerTokenBalance + expeted[1][0], "taker's token balance should be [" + afterBalance.takerTokenBalance + "]!")
-
-
-}
-
-async function takerException(exchangeInstance, tokenInstance, exchangeBalance, maker, taker, sells, buys, sellOrders, buyOrders, expeted) {
-    // Log.debug(sellOrders)
-    var makerOrders = [], takerOrders = []
-    for (let i = 0; i < sellOrders.length; i++) {
-        let mo = {
-            tokenBuy: sellOrders[i].tokenBuy,
-            tokenSell: sellOrders[i].tokenSell,
-            user: taker,
-            amountBuy: web3.toWei(sellOrders[i].amountBuy),
-            amountSell: web3.toWei(sellOrders[i].amountSell),
-            expires: 5000000,
-            fee: 0,
-            nonce: Date.now(),
-            channelFeeAccount : sellOrders[i].channelFeeAccount,
-            channelFee: web3.toWei("0.15", "ether"),
-            channelId: sellOrders[i].channelId,
-            v: 0,
-            r: 0,
-            s: 0
-        }
-        await signOrder(exchangeInstance, mo)
-        makerOrders.push(mo)
-    }
-    // Log.debug(makerOrders)
-    for (let i = 0; i < buyOrders.length; i++) {
-        let mo = {
-            tokenBuy: buyOrders[i].tokenBuy,
-            tokenSell: buyOrders[i].tokenSell,
-            user: maker,
-            amountBuy: web3.toWei(buyOrders[i].amountBuy),
-            amountSell: web3.toWei(buyOrders[i].amountSell),
-            expires: 5000000,
-            fee: 0,
-            nonce: Date.now(),
-            channelFeeAccount : buyOrders[i].channelFeeAccount,
-            channelFee: web3.toWei("0.15", "ether"),
-            channelId: buyOrders[i].channelId,
-            v: 0,
-            r: 0,
-            s: 0
-        }
-        await signOrder(exchangeInstance, mo)
-        takerOrders.push(mo)
-    }
-
-    ///match orders
-    var tradePair = []
-    for (let i = 0; i < makerOrders.length; i++) {
-        for (let j = 0; j < buys.length; j++) {
-            if (sells[i][0] <= buys[j][0]) {
-                //price matches
-                if (sellOrders[i].amountSell >= buyOrders[j].amountBuy) {
-                    //amount enough
-                    tradePair.push([takerOrders[j], makerOrders[i]])
-                }
-            }
-        }
-    }
-
-    // Log.debug(tradePair)
-
-    ///submit trade on-chain
-    var adds = [], vals = [], vs = [], rs = [], ss = []
-    for (let i = 0; i < tradePair.length; i++) {
-        let makerOrder = tradePair[i][0]
-        let takerOrder = tradePair[i][1]
-        let addresses = [
-            makerOrder.tokenBuy,
-            takerOrder.tokenBuy,
-            makerOrder.tokenSell,
-            takerOrder.tokenSell,
-            makerOrder.user,
-            takerOrder.user,
-            makerOrder.user,
-            takerOrder.user,
-        ];
-        let values = [
-            makerOrder.amountBuy,
-            takerOrder.amountBuy,
-            makerOrder.amountSell,
-            takerOrder.amountSell,
-            makerOrder.fee,
-            takerOrder.fee,
-            makerOrder.expires,
-            takerOrder.expires,
-            makerOrder.nonce,
-            takerOrder.nonce
-        ];
-        let v = [makerOrder.v, takerOrder.v]
-        let r = [makerOrder.r, takerOrder.r]
-        let s = [makerOrder.s, takerOrder.s]
-        Log.debug(addresses,values,v,r,s)
-        adds.push(addresses)
-        vals.push(values)
-        vs.push(v)
-        rs.push(r)
-        ss.push(s)
-    }
-    let result = await exchangeInstance.batchTrade(adds, vals, vs, rs, ss)
-    assert.equal(result.receipt.status, 1, "trade failed!")
-
-}
-
-async function takerSell(exchangeInstance, tokenInstance, exchangeBalance, maker, taker, sells, buys, sellOrders, buyOrders, expeted, tradeAmounts) {
+async function bacthTrade(exchangeInstance, tokenInstance, exchangeBalance, maker, taker, sells, buys, sellOrders, buyOrders, expeted, tradeAmounts) {
     // sleep.msleep(2000)
     Log.trace('sellOrders',sellOrders)
     Log.trace('buyOrders',buyOrders)
@@ -1181,6 +908,7 @@ async function takerSell(exchangeInstance, tokenInstance, exchangeBalance, maker
     assert.equal(afterBalance.takerTokenBalance, beforeBalance.takerTokenBalance + expeted[1][0], "taker's token balance should be [" + afterBalance.takerTokenBalance + "]!")
 
 }
+
 
 async function signOrder(exchangeInstance, mo) {
     let hash = await exchangeInstance.getOrderHash(mo.tokenBuy, mo.amountBuy, mo.tokenSell, mo.amountSell, mo.baseToken, mo.expires, mo.nonce, mo.feeToken, mo.channelFeeAccount, mo.channelId)

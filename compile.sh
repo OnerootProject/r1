@@ -1,4 +1,4 @@
 #!/usr/bin/env bash
 
-node test/compile.js
+node bin/compile.js
 
