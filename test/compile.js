@@ -18,7 +18,7 @@ for (var contractName in output.contracts) {
 params = packValues(["address"], ["0x7Da8470794fD52463956D8deeD55eDec9fA6C662"])
 console.log(params)
 
-console.log("bytecode:", output.contracts["ex.sol:R1Exchange"].bytecode + params)
+// console.log("bytecode:", output.contracts["ex.sol:R1Exchange"].bytecode + params)
 // console.log("abi:", "'"+output.contracts["ex.sol:R1Exchange"].interface+"'")
 
 function packValues(types, values) {

@@ -15,12 +15,53 @@
   },
   {
     "constant": true,
-    "inputs": [],
-    "name": "withdrawEnabled",
+    "inputs": [
+      {
+        "name": "tokenBuy",
+        "type": "address"
+      },
+      {
+        "name": "amountBuy",
+        "type": "uint256"
+      },
+      {
+        "name": "tokenSell",
+        "type": "address"
+      },
+      {
+        "name": "amountSell",
+        "type": "uint256"
+      },
+      {
+        "name": "base",
+        "type": "address"
+      },
+      {
+        "name": "expires",
+        "type": "uint256"
+      },
+      {
+        "name": "nonce",
+        "type": "uint256"
+      },
+      {
+        "name": "feeToken",
+        "type": "address"
+      },
+      {
+        "name": "channelFeeAccount",
+        "type": "address"
+      },
+      {
+        "name": "channelId",
+        "type": "uint256"
+      }
+    ],
+    "name": "getOrderHash",
     "outputs": [
       {
         "name": "",
-        "type": "bool"
+        "type": "bytes32"
       }
     ],
     "payable": false,
@@ -37,9 +78,103 @@
       {
         "name": "",
         "type": "address"
+      },
+      {
+        "name": "",
+        "type": "uint256"
       }
     ],
-    "name": "withdrawAllowance",
+    "name": "applyList",
+    "outputs": [
+      {
+        "name": "",
+        "type": "uint256"
+      }
+    ],
+    "payable": false,
+    "stateMutability": "view",
+    "type": "function"
+  },
+  {
+    "constant": true,
+    "inputs": [],
+    "name": "withdrawEnabled",
+    "outputs": [
+      {
+        "name": "",
+        "type": "bool"
+      }
+    ],
+    "payable": false,
+    "stateMutability": "view",
+    "type": "function"
+  },
+  {
+    "constant": false,
+    "inputs": [
+      {
+        "name": "token",
+        "type": "address"
+      },
+      {
+        "name": "amount",
+        "type": "uint256"
+      },
+      {
+        "name": "channelId",
+        "type": "uint256"
+      }
+    ],
+    "name": "withdrawNoLimit",
+    "outputs": [],
+    "payable": false,
+    "stateMutability": "nonpayable",
+    "type": "function"
+  },
+  {
+    "constant": true,
+    "inputs": [
+      {
+        "name": "",
+        "type": "address"
+      },
+      {
+        "name": "",
+        "type": "address"
+      },
+      {
+        "name": "",
+        "type": "uint256"
+      }
+    ],
+    "name": "tokenList",
+    "outputs": [
+      {
+        "name": "",
+        "type": "uint256"
+      }
+    ],
+    "payable": false,
+    "stateMutability": "view",
+    "type": "function"
+  },
+  {
+    "constant": true,
+    "inputs": [
+      {
+        "name": "",
+        "type": "address"
+      },
+      {
+        "name": "",
+        "type": "uint256"
+      },
+      {
+        "name": "",
+        "type": "bytes32"
+      }
+    ],
+    "name": "orderFilled",
     "outputs": [
       {
         "name": "",
@@ -70,6 +205,28 @@
     "type": "function"
   },
   {
+    "constant": false,
+    "inputs": [
+      {
+        "name": "user",
+        "type": "address"
+      },
+      {
+        "name": "tokens",
+        "type": "address[]"
+      },
+      {
+        "name": "channelIds",
+        "type": "uint256[]"
+      }
+    ],
+    "name": "refund",
+    "outputs": [],
+    "payable": false,
+    "stateMutability": "nonpayable",
+    "type": "function"
+  },
+  {
     "constant": true,
     "inputs": [
       {
@@ -89,49 +246,96 @@
     "type": "function"
   },
   {
-    "constant": true,
+    "constant": false,
     "inputs": [
       {
-        "name": "",
+        "name": "admin",
         "type": "address"
       },
       {
-        "name": "",
-        "type": "bytes32"
+        "name": "isAdmin",
+        "type": "bool"
       }
     ],
-    "name": "orderFilled",
-    "outputs": [
-      {
-        "name": "",
-        "type": "uint256"
-      }
-    ],
+    "name": "setAdmin",
+    "outputs": [],
     "payable": false,
-    "stateMutability": "view",
+    "stateMutability": "nonpayable",
     "type": "function"
   },
   {
-    "constant": true,
+    "constant": false,
     "inputs": [
       {
-        "name": "",
+        "name": "token",
         "type": "address"
       },
       {
-        "name": "",
-        "type": "address"
-      }
-    ],
-    "name": "latestApply",
-    "outputs": [
+        "name": "amount",
+        "type": "uint256"
+      },
       {
-        "name": "",
+        "name": "channelId",
         "type": "uint256"
       }
     ],
+    "name": "applyWithdraw",
+    "outputs": [],
     "payable": false,
-    "stateMutability": "view",
+    "stateMutability": "nonpayable",
+    "type": "function"
+  },
+  {
+    "constant": false,
+    "inputs": [
+      {
+        "name": "token",
+        "type": "address"
+      },
+      {
+        "name": "user",
+        "type": "address"
+      },
+      {
+        "name": "channelId",
+        "type": "uint256"
+      }
+    ],
+    "name": "approveWithdraw",
+    "outputs": [],
+    "payable": false,
+    "stateMutability": "nonpayable",
+    "type": "function"
+  },
+  {
+    "constant": false,
+    "inputs": [
+      {
+        "name": "users",
+        "type": "address[]"
+      },
+      {
+        "name": "nonces",
+        "type": "uint256[]"
+      },
+      {
+        "name": "channelId",
+        "type": "uint256"
+      }
+    ],
+    "name": "batchCancel",
+    "outputs": [],
+    "payable": false,
+    "stateMutability": "nonpayable",
+    "type": "function"
+  },
+  {
+    "constant": false,
+    "inputs": [],
+    "name": "stopTrade",
+    "outputs": [],
+    "payable": false,
+    "stateMutability": "nonpayable",
     "type": "function"
   },
   {
@@ -149,6 +353,34 @@
     "type": "function"
   },
   {
+    "constant": false,
+    "inputs": [
+      {
+        "name": "enabled",
+        "type": "bool"
+      }
+    ],
+    "name": "enableWithdraw",
+    "outputs": [],
+    "payable": false,
+    "stateMutability": "nonpayable",
+    "type": "function"
+  },
+  {
+    "constant": false,
+    "inputs": [
+      {
+        "name": "lock",
+        "type": "uint256"
+      }
+    ],
+    "name": "changeLockTime",
+    "outputs": [],
+    "payable": false,
+    "stateMutability": "nonpayable",
+    "type": "function"
+  },
+  {
     "constant": true,
     "inputs": [],
     "name": "feeRate",
@@ -163,11 +395,181 @@
     "type": "function"
   },
   {
+    "constant": false,
+    "inputs": [
+      {
+        "name": "token",
+        "type": "address"
+      },
+      {
+        "name": "amount",
+        "type": "uint256"
+      },
+      {
+        "name": "channelId",
+        "type": "uint256"
+      }
+    ],
+    "name": "depositToken",
+    "outputs": [],
+    "payable": false,
+    "stateMutability": "nonpayable",
+    "type": "function"
+  },
+  {
+    "constant": false,
+    "inputs": [
+      {
+        "name": "acc",
+        "type": "address"
+      },
+      {
+        "name": "asFee",
+        "type": "bool"
+      }
+    ],
+    "name": "setFeeAccount",
+    "outputs": [],
+    "payable": false,
+    "stateMutability": "nonpayable",
+    "type": "function"
+  },
+  {
+    "constant": false,
+    "inputs": [
+      {
+        "name": "token",
+        "type": "address"
+      },
+      {
+        "name": "to",
+        "type": "address"
+      },
+      {
+        "name": "amount",
+        "type": "uint256"
+      },
+      {
+        "name": "channelId",
+        "type": "uint256"
+      }
+    ],
+    "name": "depositTo",
+    "outputs": [],
+    "payable": false,
+    "stateMutability": "nonpayable",
+    "type": "function"
+  },
+  {
+    "constant": false,
+    "inputs": [
+      {
+        "name": "token",
+        "type": "address"
+      },
+      {
+        "name": "to",
+        "type": "address[]"
+      },
+      {
+        "name": "amount",
+        "type": "uint256[]"
+      },
+      {
+        "name": "channelId",
+        "type": "uint256"
+      }
+    ],
+    "name": "batchDepositTo",
+    "outputs": [],
+    "payable": false,
+    "stateMutability": "nonpayable",
+    "type": "function"
+  },
+  {
+    "constant": false,
+    "inputs": [
+      {
+        "name": "addresses",
+        "type": "address[13]"
+      },
+      {
+        "name": "values",
+        "type": "uint256[15]"
+      },
+      {
+        "name": "v",
+        "type": "uint8[2]"
+      },
+      {
+        "name": "r",
+        "type": "bytes32[2]"
+      },
+      {
+        "name": "s",
+        "type": "bytes32[2]"
+      }
+    ],
+    "name": "trade",
+    "outputs": [],
+    "payable": false,
+    "stateMutability": "nonpayable",
+    "type": "function"
+  },
+  {
+    "constant": false,
+    "inputs": [
+      {
+        "name": "addresses",
+        "type": "address[13][]"
+      },
+      {
+        "name": "values",
+        "type": "uint256[15][]"
+      },
+      {
+        "name": "v",
+        "type": "uint8[2][]"
+      },
+      {
+        "name": "r",
+        "type": "bytes32[2][]"
+      },
+      {
+        "name": "s",
+        "type": "bytes32[2][]"
+      }
+    ],
+    "name": "batchTrade",
+    "outputs": [],
+    "payable": false,
+    "stateMutability": "nonpayable",
+    "type": "function"
+  },
+  {
+    "constant": false,
+    "inputs": [
+      {
+        "name": "fr",
+        "type": "uint256"
+      }
+    ],
+    "name": "changeFeeRate",
+    "outputs": [],
+    "payable": false,
+    "stateMutability": "nonpayable",
+    "type": "function"
+  },
+  {
     "constant": true,
     "inputs": [
       {
         "name": "",
         "type": "address"
+      },
+      {
+        "name": "",
+        "type": "uint256"
       }
     ],
     "name": "canceled",
@@ -182,26 +584,39 @@
     "type": "function"
   },
   {
-    "constant": true,
+    "constant": false,
     "inputs": [
       {
-        "name": "",
+        "name": "token",
         "type": "address"
       },
       {
-        "name": "",
-        "type": "address"
-      }
-    ],
-    "name": "applyList",
-    "outputs": [
+        "name": "amount",
+        "type": "uint256"
+      },
       {
-        "name": "",
+        "name": "channelId",
         "type": "uint256"
       }
     ],
+    "name": "withdraw",
+    "outputs": [],
     "payable": false,
-    "stateMutability": "view",
+    "stateMutability": "nonpayable",
+    "type": "function"
+  },
+  {
+    "constant": false,
+    "inputs": [
+      {
+        "name": "channelId",
+        "type": "uint256"
+      }
+    ],
+    "name": "deposit",
+    "outputs": [],
+    "payable": true,
+    "stateMutability": "payable",
     "type": "function"
   },
   {
@@ -214,9 +629,13 @@
       {
         "name": "",
         "type": "address"
+      },
+      {
+        "name": "",
+        "type": "uint256"
       }
     ],
-    "name": "tokenList",
+    "name": "latestApply",
     "outputs": [
       {
         "name": "",
@@ -240,6 +659,60 @@
       {
         "name": "",
         "type": "bool"
+      }
+    ],
+    "payable": false,
+    "stateMutability": "view",
+    "type": "function"
+  },
+  {
+    "constant": true,
+    "inputs": [
+      {
+        "name": "",
+        "type": "address"
+      },
+      {
+        "name": "",
+        "type": "address"
+      },
+      {
+        "name": "",
+        "type": "uint256"
+      }
+    ],
+    "name": "withdrawAllowance",
+    "outputs": [
+      {
+        "name": "",
+        "type": "uint256"
+      }
+    ],
+    "payable": false,
+    "stateMutability": "view",
+    "type": "function"
+  },
+  {
+    "constant": true,
+    "inputs": [
+      {
+        "name": "token",
+        "type": "address"
+      },
+      {
+        "name": "user",
+        "type": "address"
+      },
+      {
+        "name": "channelId",
+        "type": "uint256"
+      }
+    ],
+    "name": "balanceOf",
+    "outputs": [
+      {
+        "name": "",
+        "type": "uint256"
       }
     ],
     "payable": false,
@@ -275,6 +748,36 @@
     "type": "function"
   },
   {
+    "constant": false,
+    "inputs": [
+      {
+        "name": "addresses",
+        "type": "address[4]"
+      },
+      {
+        "name": "values",
+        "type": "uint256[5]"
+      },
+      {
+        "name": "v",
+        "type": "uint8"
+      },
+      {
+        "name": "r",
+        "type": "bytes32"
+      },
+      {
+        "name": "s",
+        "type": "bytes32"
+      }
+    ],
+    "name": "adminWithdraw",
+    "outputs": [],
+    "payable": false,
+    "stateMutability": "nonpayable",
+    "type": "function"
+  },
+  {
     "payable": false,
     "stateMutability": "nonpayable",
     "type": "fallback"
@@ -304,6 +807,38 @@
       }
     ],
     "name": "Deposit",
+    "type": "event"
+  },
+  {
+    "anonymous": false,
+    "inputs": [
+      {
+        "indexed": true,
+        "name": "token",
+        "type": "address"
+      },
+      {
+        "indexed": true,
+        "name": "from",
+        "type": "address"
+      },
+      {
+        "indexed": true,
+        "name": "user",
+        "type": "address"
+      },
+      {
+        "indexed": false,
+        "name": "amount",
+        "type": "uint256"
+      },
+      {
+        "indexed": false,
+        "name": "balance",
+        "type": "uint256"
+      }
+    ],
+    "name": "DepositTo",
     "type": "event"
   },
   {
@@ -418,387 +953,5 @@
     ],
     "name": "OwnershipTransferred",
     "type": "event"
-  },
-  {
-    "constant": false,
-    "inputs": [
-      {
-        "name": "admin",
-        "type": "address"
-      },
-      {
-        "name": "isAdmin",
-        "type": "bool"
-      }
-    ],
-    "name": "setAdmin",
-    "outputs": [],
-    "payable": false,
-    "stateMutability": "nonpayable",
-    "type": "function"
-  },
-  {
-    "constant": false,
-    "inputs": [
-      {
-        "name": "acc",
-        "type": "address"
-      },
-      {
-        "name": "asFee",
-        "type": "bool"
-      }
-    ],
-    "name": "setFeeAccount",
-    "outputs": [],
-    "payable": false,
-    "stateMutability": "nonpayable",
-    "type": "function"
-  },
-  {
-    "constant": false,
-    "inputs": [
-      {
-        "name": "enabled",
-        "type": "bool"
-      }
-    ],
-    "name": "enableWithdraw",
-    "outputs": [],
-    "payable": false,
-    "stateMutability": "nonpayable",
-    "type": "function"
-  },
-  {
-    "constant": false,
-    "inputs": [
-      {
-        "name": "lock",
-        "type": "uint256"
-      }
-    ],
-    "name": "changeLockTime",
-    "outputs": [],
-    "payable": false,
-    "stateMutability": "nonpayable",
-    "type": "function"
-  },
-  {
-    "constant": false,
-    "inputs": [
-      {
-        "name": "fr",
-        "type": "uint256"
-      }
-    ],
-    "name": "changeFeeRate",
-    "outputs": [],
-    "payable": false,
-    "stateMutability": "nonpayable",
-    "type": "function"
-  },
-  {
-    "constant": false,
-    "inputs": [],
-    "name": "stopTrade",
-    "outputs": [],
-    "payable": false,
-    "stateMutability": "nonpayable",
-    "type": "function"
-  },
-  {
-    "constant": false,
-    "inputs": [
-      {
-        "name": "users",
-        "type": "address[]"
-      },
-      {
-        "name": "nonces",
-        "type": "uint256[]"
-      }
-    ],
-    "name": "batchCancel",
-    "outputs": [],
-    "payable": false,
-    "stateMutability": "nonpayable",
-    "type": "function"
-  },
-  {
-    "constant": false,
-    "inputs": [],
-    "name": "deposit",
-    "outputs": [],
-    "payable": true,
-    "stateMutability": "payable",
-    "type": "function"
-  },
-  {
-    "constant": false,
-    "inputs": [
-      {
-        "name": "token",
-        "type": "address"
-      },
-      {
-        "name": "amount",
-        "type": "uint256"
-      }
-    ],
-    "name": "depositToken",
-    "outputs": [],
-    "payable": false,
-    "stateMutability": "nonpayable",
-    "type": "function"
-  },
-  {
-    "constant": false,
-    "inputs": [
-      {
-        "name": "token",
-        "type": "address"
-      },
-      {
-        "name": "amount",
-        "type": "uint256"
-      }
-    ],
-    "name": "applyWithdraw",
-    "outputs": [],
-    "payable": false,
-    "stateMutability": "nonpayable",
-    "type": "function"
-  },
-  {
-    "constant": false,
-    "inputs": [
-      {
-        "name": "token",
-        "type": "address"
-      },
-      {
-        "name": "user",
-        "type": "address"
-      }
-    ],
-    "name": "approveWithdraw",
-    "outputs": [],
-    "payable": false,
-    "stateMutability": "nonpayable",
-    "type": "function"
-  },
-  {
-    "constant": false,
-    "inputs": [
-      {
-        "name": "token",
-        "type": "address"
-      },
-      {
-        "name": "amount",
-        "type": "uint256"
-      }
-    ],
-    "name": "withdraw",
-    "outputs": [],
-    "payable": false,
-    "stateMutability": "nonpayable",
-    "type": "function"
-  },
-  {
-    "constant": false,
-    "inputs": [
-      {
-        "name": "token",
-        "type": "address"
-      },
-      {
-        "name": "amount",
-        "type": "uint256"
-      }
-    ],
-    "name": "withdrawNoLimit",
-    "outputs": [],
-    "payable": false,
-    "stateMutability": "nonpayable",
-    "type": "function"
-  },
-  {
-    "constant": false,
-    "inputs": [
-      {
-        "name": "addresses",
-        "type": "address[3]"
-      },
-      {
-        "name": "values",
-        "type": "uint256[3]"
-      },
-      {
-        "name": "v",
-        "type": "uint8"
-      },
-      {
-        "name": "r",
-        "type": "bytes32"
-      },
-      {
-        "name": "s",
-        "type": "bytes32"
-      }
-    ],
-    "name": "adminWithdraw",
-    "outputs": [],
-    "payable": false,
-    "stateMutability": "nonpayable",
-    "type": "function"
-  },
-  {
-    "constant": true,
-    "inputs": [
-      {
-        "name": "tokenBuy",
-        "type": "address"
-      },
-      {
-        "name": "amountBuy",
-        "type": "uint256"
-      },
-      {
-        "name": "tokenSell",
-        "type": "address"
-      },
-      {
-        "name": "amountSell",
-        "type": "uint256"
-      },
-      {
-        "name": "base",
-        "type": "address"
-      },
-      {
-        "name": "expires",
-        "type": "uint256"
-      },
-      {
-        "name": "nonce",
-        "type": "uint256"
-      },
-      {
-        "name": "feeToken",
-        "type": "address"
-      }
-    ],
-    "name": "getOrderHash",
-    "outputs": [
-      {
-        "name": "",
-        "type": "bytes32"
-      }
-    ],
-    "payable": false,
-    "stateMutability": "pure",
-    "type": "function"
-  },
-  {
-    "constant": true,
-    "inputs": [
-      {
-        "name": "token",
-        "type": "address"
-      },
-      {
-        "name": "user",
-        "type": "address"
-      }
-    ],
-    "name": "balanceOf",
-    "outputs": [
-      {
-        "name": "",
-        "type": "uint256"
-      }
-    ],
-    "payable": false,
-    "stateMutability": "view",
-    "type": "function"
-  },
-  {
-    "constant": false,
-    "inputs": [
-      {
-        "name": "addresses",
-        "type": "address[11]"
-      },
-      {
-        "name": "values",
-        "type": "uint256[11]"
-      },
-      {
-        "name": "v",
-        "type": "uint8[2]"
-      },
-      {
-        "name": "r",
-        "type": "bytes32[2]"
-      },
-      {
-        "name": "s",
-        "type": "bytes32[2]"
-      }
-    ],
-    "name": "trade",
-    "outputs": [],
-    "payable": false,
-    "stateMutability": "nonpayable",
-    "type": "function"
-  },
-  {
-    "constant": false,
-    "inputs": [
-      {
-        "name": "addresses",
-        "type": "address[11][]"
-      },
-      {
-        "name": "values",
-        "type": "uint256[11][]"
-      },
-      {
-        "name": "v",
-        "type": "uint8[2][]"
-      },
-      {
-        "name": "r",
-        "type": "bytes32[2][]"
-      },
-      {
-        "name": "s",
-        "type": "bytes32[2][]"
-      }
-    ],
-    "name": "batchTrade",
-    "outputs": [],
-    "payable": false,
-    "stateMutability": "nonpayable",
-    "type": "function"
-  },
-  {
-    "constant": false,
-    "inputs": [
-      {
-        "name": "user",
-        "type": "address"
-      },
-      {
-        "name": "tokens",
-        "type": "address[]"
-      }
-    ],
-    "name": "refund",
-    "outputs": [],
-    "payable": false,
-    "stateMutability": "nonpayable",
-    "type": "function"
   }
 ]

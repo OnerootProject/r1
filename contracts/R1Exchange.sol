@@ -18,18 +18,22 @@ contract R1Exchange is SafeMath, Ownable {
     // mapping(owner address => mapping(channelId uint => nonce uint256))) public canceled;
     mapping(address => mapping(uint256 => uint)) public canceled;
 
+    string public constant version = '2.0.0';
     uint public applyWait = 1 days;
     uint public feeRate = 10;
     bool public withdrawEnabled = false;
     bool public stop = false;
     uint256 private DEFAULT_CHANNEL_ID = 0;
+    bool public depositToEnabled = true;
+    bool public transferEnabled = true;
+
 
     event Deposit(address indexed token, address indexed user, uint256 amount, uint256 balance);
     event DepositTo(address indexed token, address indexed from, address indexed user, uint256 amount, uint256 balance);
     event Withdraw(address indexed token, address indexed user, uint256 amount, uint256 balance);
     event ApplyWithdraw(address indexed token, address indexed user, uint256 amount, uint256 time);
     event Trade(address indexed maker, address indexed taker, uint256 amount, uint256 makerFee, uint256 takerFee, uint256 makerNonce, uint256 takerNonce);
-
+    event TransferTo(address indexed token, address indexed from, address indexed to, uint256 amount, uint256 balance);
 
     modifier onlyAdmin {
         require(admins[msg.sender]);
@@ -47,6 +51,14 @@ contract R1Exchange is SafeMath, Ownable {
         require(!stop);
         _;
     }
+    modifier isDepositToEnabled() {
+        require(depositToEnabled);
+        _;
+    }
+    modifier isTransferEnabled() {
+        require(transferEnabled);
+        _;
+    }
 
     function() public {
         revert();
@@ -62,11 +74,17 @@ contract R1Exchange is SafeMath, Ownable {
         feeAccounts[acc] = asFee;
     }
 
-
     function enableWithdraw(bool enabled) public onlyOwner {
         withdrawEnabled = enabled;
     }
 
+    function enableDepositTo(bool enabled) public onlyOwner {
+        depositToEnabled = enabled;
+    }
+
+    function enableTransferEnabled(bool enabled) public onlyOwner {
+        transferEnabled = enabled;
+    }
 
     function changeLockTime(uint lock) public onlyOwner {
         require(lock <= 7 days);
@@ -96,27 +114,42 @@ contract R1Exchange is SafeMath, Ownable {
 
     function deposit(uint256 channelId) public payable {
         tokenList[0][msg.sender][channelId] = safeAdd(tokenList[0][msg.sender][channelId], msg.value);
-        emit Deposit(0, msg.sender, msg.value, tokenList[0][msg.sender][channelId]);
+        Deposit(0, msg.sender, msg.value, tokenList[0][msg.sender][channelId]);
     }
 
     function depositToken(address token, uint256 amount, uint256 channelId) public {
         require(token != 0);
         tokenList[token][msg.sender][channelId] = safeAdd(tokenList[token][msg.sender][channelId], amount);
         require(Token(token).transferFrom(msg.sender, this, amount));
-        emit Deposit(token, msg.sender, amount, tokenList[token][msg.sender][channelId]);
+        Deposit(token, msg.sender, amount, tokenList[token][msg.sender][channelId]);
     }
 
-    function depositTo(address token, address to, uint256 amount, uint256 channelId) public {
+    function depositTo(address token, address to, uint256 amount, uint256 channelId) public isDepositToEnabled {
         require(token != 0 && to != 0);
         tokenList[token][to][channelId] = safeAdd(tokenList[token][to][channelId], amount);
         require(Token(token).transferFrom(msg.sender, this, amount));
-        emit DepositTo(token, msg.sender, to, amount, tokenList[token][to][channelId]);
+        DepositTo(token, msg.sender, to, amount, tokenList[token][to][channelId]);
     }
 
-    function batchDepositTo(address token, address[] to, uint256[] amount, uint256 channelId) public {
+    function batchDepositTo(address[] token, address[] to, uint256[] amount, uint256 channelId) public isDepositToEnabled {
         require(to.length == amount.length && to.length <= 200);
         for (uint i = 0; i < to.length; i++) {
-            depositTo(token, to[i], amount[i], channelId);
+            depositTo(token[i], to[i], amount[i], channelId);
+        }
+    }
+
+    function transferTo(address token, address to, uint256 amount, uint256 channelId) public isTransferEnabled {
+        require(to != 0);
+        require(amount <= tokenList[token][msg.sender][channelId]);
+        tokenList[token][msg.sender][channelId] = safeSub(tokenList[token][msg.sender][channelId], amount);
+        tokenList[token][to][channelId] = safeAdd(tokenList[token][to][channelId], amount);
+        TransferTo(token, msg.sender, to, amount, tokenList[token][msg.sender][channelId]);
+    }
+
+    function batchTransferTo(address[] token, address[] to, uint256[] amount, uint256 channelId) public isTransferEnabled {
+        require(to.length == amount.length && to.length <= 200);
+        for (uint i = 0; i < to.length; i++) {
+            transferTo(token[i], to[i], amount[i], channelId);
         }
     }
 
@@ -126,7 +159,7 @@ contract R1Exchange is SafeMath, Ownable {
         applyList[token][msg.sender][channelId] = apply;
         latestApply[token][msg.sender][channelId] = block.timestamp;
 
-        emit ApplyWithdraw(token, msg.sender, amount, block.timestamp);
+        ApplyWithdraw(token, msg.sender, amount, block.timestamp);
     }
 
     /**
@@ -162,7 +195,7 @@ contract R1Exchange is SafeMath, Ownable {
             require(Token(token).transfer(msg.sender, amount));
         }
 
-        emit Withdraw(token, msg.sender, amount, tokenList[token][msg.sender][channelId]);
+        Withdraw(token, msg.sender, amount, tokenList[token][msg.sender][channelId]);
     }
 
     /**
@@ -176,7 +209,7 @@ contract R1Exchange is SafeMath, Ownable {
         } else {//withdraw token
             require(Token(token).transfer(msg.sender, amount));
         }
-        emit Withdraw(token, msg.sender, amount, tokenList[token][msg.sender][channelId]);
+        Withdraw(token, msg.sender, amount, tokenList[token][msg.sender][channelId]);
     }
 
     struct AdminWithdrawParam {
@@ -243,7 +276,7 @@ contract R1Exchange is SafeMath, Ownable {
         } else {//withdraw token
             require(Token(param.token).transfer(param.user, param.amount));
         }
-        emit Withdraw(param.token, param.user, param.amount, tokenList[param.token][param.user][param.channelId]);
+        Withdraw(param.token, param.user, param.amount, tokenList[param.token][param.user][param.channelId]);
     }
 
     function checkFee(uint256 amount, uint256 fee) private returns (uint256){
@@ -254,8 +287,8 @@ contract R1Exchange is SafeMath, Ownable {
         return maxFee;
     }
 
-    function getOrderHash(address tokenBuy, uint256 amountBuy, address tokenSell, uint256 amountSell, address base, uint256 expires, uint256 nonce, address feeToken, address channelFeeAccount, uint256 channelFee, uint256 channelId) public view returns (bytes32) {
-        return keccak256(this, tokenBuy, amountBuy, tokenSell, amountSell, base, expires, nonce, feeToken, channelFeeAccount, channelFee, channelId);
+    function getOrderHash(address tokenBuy, uint256 amountBuy, address tokenSell, uint256 amountSell, address base, uint256 expires, uint256 nonce, address feeToken, address channelFeeAccount, uint256 channelId) public view returns (bytes32) {
+        return keccak256(this, tokenBuy, amountBuy, tokenSell, amountSell, base, expires, nonce, feeToken, channelFeeAccount, channelId);
     }
 
     function balanceOf(address token, address user, uint256 channelId) public constant returns (uint256) {
@@ -368,15 +401,15 @@ contract R1Exchange is SafeMath, Ownable {
         require(makerOrder.baseToken == takerOrder.baseToken && makerOrder.tokenBuy == takerOrder.tokenSell && makerOrder.tokenSell == takerOrder.tokenBuy);
         require(takerOrder.baseToken == takerOrder.tokenBuy || takerOrder.baseToken == takerOrder.tokenSell);
 
-        makerOrder.orderHash = getOrderHash(makerOrder.tokenBuy, makerOrder.amountBuy, makerOrder.tokenSell, makerOrder.amountSell, makerOrder.baseToken, makerOrder.expires, makerOrder.nonce, makerOrder.feeToken, makerOrder.channelFeeAccount, makerOrder.channelFee , makerOrder.channelId);
-        takerOrder.orderHash = getOrderHash(takerOrder.tokenBuy, takerOrder.amountBuy, takerOrder.tokenSell, takerOrder.amountSell, takerOrder.baseToken, takerOrder.expires, takerOrder.nonce, takerOrder.feeToken, takerOrder.channelFeeAccount, takerOrder.channelFee , takerOrder.channelId);
+        makerOrder.orderHash = getOrderHash(makerOrder.tokenBuy, makerOrder.amountBuy, makerOrder.tokenSell, makerOrder.amountSell, makerOrder.baseToken, makerOrder.expires, makerOrder.nonce, makerOrder.feeToken, makerOrder.channelFeeAccount, makerOrder.channelId);
+        takerOrder.orderHash = getOrderHash(takerOrder.tokenBuy, takerOrder.amountBuy, takerOrder.tokenSell, takerOrder.amountSell, takerOrder.baseToken, takerOrder.expires, takerOrder.nonce, takerOrder.feeToken, takerOrder.channelFeeAccount, takerOrder.channelId);
 
         require(ecrecover(keccak256("\x19Ethereum Signed Message:\n32", makerOrder.orderHash), v[0], r[0], s[0]) == makerOrder.user);
         require(ecrecover(keccak256("\x19Ethereum Signed Message:\n32", takerOrder.orderHash), v[1], r[1], s[1]) == takerOrder.user);
 
         balance(makerOrder, takerOrder, addresses[10], tradeAmount);
-        //emit event
-        emit Trade(makerOrder.user, takerOrder.user, tradeAmount, makerOrder.fee, takerOrder.fee, makerOrder.nonce, takerOrder.nonce);
+        //event
+        Trade(makerOrder.user, takerOrder.user, tradeAmount, makerOrder.fee, takerOrder.fee, makerOrder.nonce, takerOrder.nonce);
     }
 
     function balance(Order makerOrder, Order takerOrder, address feeAccount, uint256 tradeAmount) internal {
@@ -471,7 +504,7 @@ contract R1Exchange is SafeMath, Ownable {
                     } else {//withdraw token
                         require(Token(token).transfer(user, amount));
                     }
-                    emit Withdraw(token, user, amount, tokenList[token][user][channelId]);
+                    Withdraw(token, user, amount, tokenList[token][user][channelId]);
                 }
             }
         }
