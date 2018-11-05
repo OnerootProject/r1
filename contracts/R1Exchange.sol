@@ -34,6 +34,7 @@ contract R1Exchange is SafeMath, Ownable {
     event ApplyWithdraw(address indexed token, address indexed user, uint256 amount, uint256 time);
     event Trade(address indexed maker, address indexed taker, uint256 amount, uint256 makerFee, uint256 takerFee, uint256 makerNonce, uint256 takerNonce);
     event TransferTo(address indexed token, address indexed from, address indexed to, uint256 amount, uint256 balance);
+    event BatchCancel(uint256 count, uint256 channelId);
 
     modifier onlyAdmin {
         require(admins[msg.sender]);
@@ -106,10 +107,13 @@ contract R1Exchange is SafeMath, Ownable {
     **/
     function batchCancel(address[] users, uint256[] nonces, uint256 channelId) public onlyAdmin {
         require(users.length == nonces.length);
+        uint256 count = 0;
         for (uint i = 0; i < users.length; i++) {
             require(nonces[i] >= canceled[users[i]][channelId]);
             canceled[users[i]][channelId] = nonces[i];
+            count++;
         }
+        BatchCancel(count, channelId);
     }
 
     function deposit(uint256 channelId) public payable {

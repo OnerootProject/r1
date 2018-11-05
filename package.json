@@ -1,6 +1,9 @@
 {
   "name": "rootrex-contract",
   "version": "0.0.1",
+  "scripts": {
+    "test": "truffle migrate --reset && truffle test"
+  },
   "dependencies": {
     "ethereumjs-abi": "^0.6.5",
     "solc": "^0.4.23",
