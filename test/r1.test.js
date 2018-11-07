@@ -130,7 +130,7 @@ contract("Exchange", function (accounts) {
         assert.equal(web3.fromWei(afterBalance.valueOf()), web3.fromWei(beforeBalance.valueOf())*1 + amount*1, "taker deposit rnt to maker failed")
     })
 
-    it("transferTo", async () => {
+    it("innerTransfer", async () => {
         let amount = 1
         let makerBeforeBalance = await exchangeInstance.balanceOf(tokenInstance.address, maker, channel1Id)
         Log.debug('maker before balance:', web3.fromWei(makerBeforeBalance.valueOf()), tokenInstance.address)
@@ -138,12 +138,13 @@ contract("Exchange", function (accounts) {
         Log.debug('taker before balance:', web3.fromWei(takerBeforeBalance.valueOf()), tokenInstance.address)
 
         try {
-            let result = await exchangeInstance.batchTransferTo([tokenInstance.address], [taker], [web3.toWei(amount, "ether")], channel1Id, {from: maker})
+            let result = await exchangeInstance.batchInnerTransfer([tokenInstance.address], [taker], [web3.toWei(amount, "ether")], channel1Id, {from: maker})
             Log.debug('logs:',result.receipt.logs)
             Log.debug('status:', result.receipt.status)
-            assert.equal(result.receipt.status, 1, "maker transferTo rnt to taker failed")
+            assert.equal(result.receipt.status, 1, "maker innerTransfer rnt to taker failed")
         } catch (e) {
-            Log.error('batchTransferTo', e)
+            Log.error('innerTransfer', e)
+            assert.equal(e!=null, false, "innerTransfer failed")
         }
 
         let makerAfterBalance = await exchangeInstance.balanceOf(tokenInstance.address, maker, channel1Id)
@@ -153,6 +154,44 @@ contract("Exchange", function (accounts) {
 
         assert.equal(web3.fromWei(makerAfterBalance.valueOf())*1, web3.fromWei(makerBeforeBalance.valueOf())*1 - amount, "maker balance error, maker transferTo rnt to taker failed")
         assert.equal(web3.fromWei(takerAfterBalance.valueOf())*1, web3.fromWei(takerBeforeBalance.valueOf())*1 + amount, "taker balance error, maker transferTo rnt to taker failed")
+    })
+
+
+    it("changeChannel", async () => {
+        let result
+        result = await exchangeInstance.changeChannelEnabled()
+        Log.debug('before changeChannelEnabled:',result)
+        assert.equal(result, false, "changeChannelEnabled default value should be false")
+        await exchangeInstance.enableChangeChannel(true, {from: owner})
+        result = await exchangeInstance.changeChannelEnabled()
+        Log.debug('after changeChannelEnabled:',result)
+        assert.equal(result, true, "changeChannelEnabled value should be true")
+
+        let amount = 1
+        let makerBeforeBalance1 = await exchangeInstance.balanceOf(tokenInstance.address, maker, channel1Id)
+        Log.debug('maker before balance1:', web3.fromWei(makerBeforeBalance1.valueOf()), tokenInstance.address)
+        let makerBeforeBalance2 = await exchangeInstance.balanceOf(tokenInstance.address, maker, channel2Id)
+        Log.debug('maker before balance2:', web3.fromWei(makerBeforeBalance2.valueOf()), tokenInstance.address)
+
+        try {
+            result = await exchangeInstance.batchChangeChannel([tokenInstance.address], [web3.toWei(amount, "ether")], channel1Id, channel2Id, {from: maker})
+            Log.debug('logs:',result.receipt.logs)
+            Log.debug('status:', result.receipt.status)
+            assert.equal(result.receipt.status, 1, "maker changeChannel failed")
+        } catch (e) {
+            Log.error('changeChannel', e)
+            assert.equal(e!=null, false, "changeChannel failed")
+        }
+
+        let makerAfterBalance1 = await exchangeInstance.balanceOf(tokenInstance.address, maker, channel1Id)
+        Log.debug('maker after balance1:', web3.fromWei(makerAfterBalance1.valueOf()), tokenInstance.address)
+        let makerAfterBalance2 = await exchangeInstance.balanceOf(tokenInstance.address, maker, channel2Id)
+        Log.debug('maker after balance2:', web3.fromWei(makerAfterBalance2.valueOf()), tokenInstance.address)
+
+        assert.equal(web3.fromWei(makerAfterBalance1.valueOf())*1, web3.fromWei(makerBeforeBalance1.valueOf())*1 - amount, "maker balance1 error, maker changeChannel from channel1 to channel2 failed")
+        assert.equal(web3.fromWei(makerAfterBalance2.valueOf())*1, web3.fromWei(makerBeforeBalance2.valueOf())*1 + amount, "maker balance2 error, maker changeChannel from channel1 to channel2 failed")
+
+        await exchangeInstance.enableChangeChannel(false, {from: owner})
     })
 
     it("adminWithdraw", async () => {

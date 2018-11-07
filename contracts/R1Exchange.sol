@@ -27,7 +27,7 @@ contract R1Exchange is SafeMath, Ownable {
     uint256 private DEFAULT_CHANNEL_ID = 0;
     bool public depositToEnabled = true;
     bool public transferEnabled = true;
-    bool public changeChannelEnabled = true;
+    bool public changeChannelEnabled = false;
 
 
     event Deposit(address indexed token, address indexed user, uint256 amount, uint256 balance, uint256 channelId);
@@ -162,7 +162,7 @@ contract R1Exchange is SafeMath, Ownable {
         InnerTransfer(token, msg.sender, to, amount, tokenList[token][msg.sender][channelId], channelId);
     }
 
-    function batchTransferTo(address[] token, address[] to, uint256[] amount, uint256 channelId) public isTransferEnabled {
+    function batchInnerTransfer(address[] token, address[] to, uint256[] amount, uint256 channelId) public isTransferEnabled {
         require(to.length == amount.length && to.length <= 200);
         for (uint i = 0; i < to.length; i++) {
             innerTransfer(token[i], to[i], amount[i], channelId);

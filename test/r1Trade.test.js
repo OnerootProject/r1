@@ -89,7 +89,7 @@ function testTrade() {
             tokenSell: pair.baseToken,
             user: maker,
             amountBuy: web3.toWei("10", "ether"),
-            amountSell: web3.toWei("1", "ether"),
+            amountSell: web3.toWei("2", "ether"),
             baseToken: "0x0",
             expires: 5000000,
             fee: web3.toWei("0.1", "ether"),
@@ -129,6 +129,7 @@ function testTrade() {
         let params = Order.genParams(makerOrder, takerOrder, tradeAmount, feeAccount)
 
         // get balance before trade
+        Log.debug('beforeBalance:')
         let beforeBalance = await getBalanceForTrade(exchangeInstance, makerOrder, takerOrder, pair, feeAccount)
 
         Log.trace('addresses:',params[0])
@@ -148,10 +149,12 @@ function testTrade() {
 
 
         // get balance after trade
+        Log.debug('afterBalance:')
         let afterBalance = await getBalanceForTrade(exchangeInstance, makerOrder, takerOrder, pair, feeAccount)
 
-        assert.equal(afterBalance.makerBaseBalance, beforeBalance.makerBaseBalance - 1, "maker's base token balance should be [" + afterBalance.makerBaseBalance + "]!")
-        assert.equal(afterBalance.takerBaseBalance, beforeBalance.takerBaseBalance + 1, "taker's base token balance should be [" + afterBalance.takerBaseBalance + "]!")
+        // If the price is ok,always use maker's price first!
+        assert.equal(afterBalance.makerBaseBalance, beforeBalance.makerBaseBalance - 2, "maker's base token balance should be [" + afterBalance.makerBaseBalance + "]!")
+        assert.equal(afterBalance.takerBaseBalance, beforeBalance.takerBaseBalance + 2, "taker's base token balance should be [" + afterBalance.takerBaseBalance + "]!")
 
         assert.equal(afterBalance.makerFeeAccBalance, beforeBalance.makerFeeAccBalance + 0.2, "maker's FeeAccount balance should be [" + afterBalance.makerFeeAccBalance + "]!")
         assert.equal(afterBalance.takerFeeAccBalance, beforeBalance.takerFeeAccBalance + 0.2, "taker's FeeAccount balance should be [" + afterBalance.takerFeeAccBalance + "]!")
@@ -167,62 +170,62 @@ function testTrade() {
 
     it("test equal price", async () => {
         let src = "./test/data/data.csv"
-        let res = await Data.readData(src, 0, tokenInstance.address, printData)
-        await bacthTrade(exchangeInstance, tokenInstance, exchangeBalance, maker, taker, res.sells, res.buys, res.sellOrders, res.buyOrders, res.expeted, [web3.toWei("10", "ether"), web3.toWei("20", "ether")])
+        let res = await Data.readData(src, '0x0', tokenInstance.address, printData)
+        await takerSell(exchangeInstance, tokenInstance, exchangeBalance, maker, taker, res.sells, res.buys, res.sellOrders, res.buyOrders, res.expeted, [web3.toWei("10", "ether"), web3.toWei("20", "ether")])
     })
 
     it("taker sell :takerAmount<=makerAmount", async () => {
         let src = "./test/data/data_taker_sell_2.csv"
         let res = await Data.readData(src, "0x0", tokenInstance.address, printData)
-        await bacthTrade(exchangeInstance, tokenInstance, exchangeBalance, maker, taker, res.sells, res.buys, res.sellOrders, res.buyOrders, res.expeted, [web3.toWei("10", "ether")])
+        await takerSell(exchangeInstance, tokenInstance, exchangeBalance, maker, taker, res.sells, res.buys, res.sellOrders, res.buyOrders, res.expeted, [web3.toWei("10", "ether")])
     })
 
     it("taker sell :takerAmount>makerAmount ", async () => {
         let src = "./test/data/data_taker_sell_1.csv"
         let res = await Data.readData(src, "0x0", tokenInstance.address, printData)
-        await bacthTrade(exchangeInstance, tokenInstance, exchangeBalance, maker, taker, res.sells, res.buys, res.sellOrders, res.buyOrders, res.expeted, [web3.toWei("10", "ether")])
+        await takerSell(exchangeInstance, tokenInstance, exchangeBalance, maker, taker, res.sells, res.buys, res.sellOrders, res.buyOrders, res.expeted, [web3.toWei("10", "ether")])
 
     })
 
     it("taker sell :buy remain <0 ", async () => {
         let src = "./test/data/data_taker_sell_3.csv"
         let res = await Data.readData(src, "0x0", tokenInstance.address, printData)
-        await bacthTrade(exchangeInstance, tokenInstance, exchangeBalance, maker, taker, res.sells, res.buys, res.sellOrders, res.buyOrders, res.expeted, [web3.toWei("15", "ether"), web3.toWei("10", "ether")])
+        await takerSell(exchangeInstance, tokenInstance, exchangeBalance, maker, taker, res.sells, res.buys, res.sellOrders, res.buyOrders, res.expeted, [web3.toWei("15", "ether"), web3.toWei("10", "ether")])
 
     })
 
     it("taker sell :multi sell  ", async () => {
         let src = "./test/data/data_taker_sell_4.csv"
         let res = await Data.readData(src, "0x0", tokenInstance.address, printData)
-        await bacthTrade(exchangeInstance, tokenInstance, exchangeBalance, maker, taker, res.sells, res.buys, res.sellOrders, res.buyOrders, res.expeted, [web3.toWei("10", "ether"), web3.toWei("10", "ether")])
+        await takerSell(exchangeInstance, tokenInstance, exchangeBalance, maker, taker, res.sells, res.buys, res.sellOrders, res.buyOrders, res.expeted, [web3.toWei("10", "ether"), web3.toWei("10", "ether")])
 
     })
 
     it("taker buy：takerAmount<=makerAmount ", async () => {
         let src = "./test/data/data_taker_buy_1.csv"
         let res = await Data.readData(src, "0x0", tokenInstance.address, printData)
-        await bacthTrade(exchangeInstance, tokenInstance, exchangeBalance, maker, taker, res.sells, res.buys, res.sellOrders, res.buyOrders, res.expeted, [web3.toWei("10", "ether")])
+        await takerBuy(exchangeInstance, tokenInstance, exchangeBalance, maker, taker, res.sells, res.buys, res.sellOrders, res.buyOrders, res.expeted, [web3.toWei("10", "ether")])
 
     })
 
     it("taker buy ：takerAmount>makerAmount ", async () => {
         let src = "./test/data/data_taker_buy_2.csv"
         let res = await Data.readData(src, "0x0", tokenInstance.address, printData)
-        await bacthTrade(exchangeInstance, tokenInstance, exchangeBalance, maker, taker, res.sells, res.buys, res.sellOrders, res.buyOrders, res.expeted, [web3.toWei("10", "ether")])
+        await takerBuy(exchangeInstance, tokenInstance, exchangeBalance, maker, taker, res.sells, res.buys, res.sellOrders, res.buyOrders, res.expeted, [web3.toWei("10", "ether")])
 
     })
 
     it("taker buy ：multi sell ", async () => {
         let src = "./test/data/data_taker_buy_3.csv"
         let res = await Data.readData(src, "0x0", tokenInstance.address, printData)
-        await bacthTrade(exchangeInstance, tokenInstance, exchangeBalance, maker, taker, res.sells, res.buys, res.sellOrders, res.buyOrders, res.expeted, [web3.toWei("10", "ether"), web3.toWei("10", "ether")])
+        await takerBuy(exchangeInstance, tokenInstance, exchangeBalance, maker, taker, res.sells, res.buys, res.sellOrders, res.buyOrders, res.expeted, [web3.toWei("10", "ether"), web3.toWei("10", "ether")])
 
     })
 
     it("test full", async () => {
         let src = "./test/data/data_full.csv"
         let res = await Data.readData(src, "0x0", tokenInstance.address, printData)
-        await bacthTrade(exchangeInstance, tokenInstance, exchangeBalance, maker, taker, res.sells, res.buys, res.sellOrders, res.buyOrders, res.expeted, [web3.toWei("10", "ether"), web3.toWei("10", "ether")])
+        await takerSell(exchangeInstance, tokenInstance, exchangeBalance, maker, taker, res.sells, res.buys, res.sellOrders, res.buyOrders, res.expeted, [web3.toWei("10", "ether"), web3.toWei("10", "ether")])
     })
 
     it("same user buy and sell", async () => {
@@ -605,7 +608,166 @@ function testTradeException() {
 
 }
 
-async function bacthTrade(exchangeInstance, tokenInstance, exchangeBalance, maker, taker, sells, buys, sellOrders, buyOrders, expeted, tradeAmounts) {
+async function takerSell(exchangeInstance, tokenInstance, exchangeBalance, maker, taker, sells, buys, sellOrders, buyOrders, expeted, tradeAmounts) {
+    // sleep.msleep(2000)
+    Log.trace('sellOrders',sellOrders)
+    Log.trace('buyOrders',buyOrders)
+    console.log('sells:', sells)
+    let makerOrder
+    let takerOrder
+    var makerOrders = [], takerOrders = []
+    let nowTime = Date.now()
+    for (let i = 0; i < sellOrders.length; i++) {
+        // Log.debug('sellOrders:',sellOrders[i])
+        takerOrder = {
+            tokenBuy: sellOrders[i].tokenBuy,
+            tokenSell: sellOrders[i].tokenSell,
+            user: taker,
+            amountBuy: web3.toWei(sellOrders[i].amountBuy),
+            amountSell: web3.toWei(sellOrders[i].amountSell),
+            baseToken: '0x0',
+            expires: 5000000,
+            fee: 0,
+            nonce: nowTime+i,
+            feeToken: 0,
+            channelFeeAccount : channel1FeeAccount,
+            channelFee: 0,
+            channelId: channel1Id,
+            v: 0,
+            r: 0,
+            s: 0
+        }
+        await signOrder(exchangeInstance, takerOrder)
+        makerOrders.push(takerOrder)
+    }
+
+    for (let i = 0; i < buyOrders.length; i++) {
+        makerOrder = {
+            tokenBuy: buyOrders[i].tokenBuy,
+            tokenSell: buyOrders[i].tokenSell,
+            user: maker,
+            amountBuy: web3.toWei(buyOrders[i].amountBuy),
+            amountSell: web3.toWei(buyOrders[i].amountSell),
+            baseToken: '0x0',
+            expires: 5000000,
+            fee: 0,
+            nonce: nowTime+i,
+            feeToken: 0,
+            channelFeeAccount : channel1FeeAccount,
+            channelFee: 0,
+            channelId: channel1Id,
+            v: 0,
+            r: 0,
+            s: 0
+        }
+        await signOrder(exchangeInstance, makerOrder)
+        takerOrders.push(makerOrder)
+    }
+
+    ///match orders
+    var tradePair = []
+    for (let i = 0; i < makerOrders.length; i++) {
+        for (let j = 0; j < buys.length; j++) {
+            if (sells[i][0] <= buys[j][0]) {
+                //price matches
+                // if(sellOrders[i].amountSell>=buyOrders[j].amountBuy){
+                //amount enough
+                tradePair.push([takerOrders[j], makerOrders[i]])
+                // }
+            }
+        }
+    }
+
+    // Log.debug('tradePair:',tradePair)
+    Log.debug('tradePair.length:', tradePair.length)
+
+    ///submit trade on-chain
+    var adds = [], vals = [], vs = [], rs = [], ss = [], rnts = []
+    for (let i = 0; i < tradePair.length; i++) {
+        let makerOrder = tradePair[i][0]
+        let takerOrder = tradePair[i][1]
+        Log.trace('makerOrder:', makerOrder)
+        Log.trace('takerOrder:', takerOrder)
+        let addresses = [
+            makerOrder.tokenBuy,
+            takerOrder.tokenBuy,
+            makerOrder.tokenSell,
+            takerOrder.tokenSell,
+            makerOrder.user,
+            takerOrder.user,
+            makerOrder.baseToken,
+            takerOrder.baseToken,
+            makerOrder.feeToken,
+            takerOrder.feeToken,
+            feeAccount,
+            makerOrder.channelFeeAccount,
+            takerOrder.channelFeeAccount
+        ];
+        let values = [
+            makerOrder.amountBuy,
+            takerOrder.amountBuy,
+            makerOrder.amountSell,
+            takerOrder.amountSell,
+            makerOrder.fee,
+            takerOrder.fee,
+            makerOrder.expires,
+            takerOrder.expires,
+            makerOrder.nonce,
+            takerOrder.nonce,
+            tradeAmounts[i],
+            makerOrder.channelFee,
+            takerOrder.channelFee,
+            makerOrder.channelId,
+            takerOrder.channelId
+        ];
+        let v = [makerOrder.v, takerOrder.v]
+        let r = [makerOrder.r, takerOrder.r]
+        let s = [makerOrder.s, takerOrder.s]
+        Log.trace("==========")
+        Log.trace(addresses,values,v,r,s)
+        adds.push(addresses)
+        vals.push(values)
+        vs.push(v)
+        rs.push(r)
+        ss.push(s)
+
+    }
+
+    let pair = {
+        baseToken: 0,
+        token: tokenInstance.address
+    }
+
+    // get balance before trade
+    Log.debug('beforeBalance:')
+    let beforeBalance = await getBalanceForTrade(exchangeInstance, makerOrder, takerOrder, pair, feeAccount)
+
+    try {
+        let result = await exchangeInstance.batchTrade(adds, vals, vs, rs, ss, {from: admin})
+        assert.equal(result.receipt.status, 1, "batchTrade failed!")
+    }catch (e) {
+        Log.debug('batchTrade error:',e)
+        assert.equal(0,1, 'batchTrade error')
+    }
+
+
+    // get balance after trade
+    Log.debug('afterBalance:')
+    let afterBalance = await getBalanceForTrade(exchangeInstance, makerOrder, takerOrder, pair, feeAccount)
+
+    console.log('expeted:',  expeted);
+
+    ///If the price is ok,always use maker's price first!
+    assert.equal(afterBalance.makerBaseBalance, beforeBalance.makerBaseBalance + expeted[1][1], "maker's base token balance should be [" + afterBalance.makerBaseBalance + "]!")
+    assert.equal(afterBalance.takerBaseBalance, beforeBalance.takerBaseBalance + expeted[0][1], "taker's base token balance should be [" + afterBalance.takerBaseBalance + "]!")
+
+    assert.equal(afterBalance.makerTokenBalance, beforeBalance.makerTokenBalance + expeted[1][0], "maker's token balance should be [" + afterBalance.makerTokenBalance + "]!")
+    assert.equal(afterBalance.takerTokenBalance, beforeBalance.takerTokenBalance + expeted[0][0], "taker's token balance should be [" + afterBalance.takerTokenBalance + "]!")
+
+}
+
+
+async function takerBuy(exchangeInstance, tokenInstance, exchangeBalance, maker, taker, sells, buys, sellOrders, buyOrders, expeted, tradeAmounts) {
     // sleep.msleep(2000)
     Log.trace('sellOrders',sellOrders)
     Log.trace('buyOrders',buyOrders)
@@ -636,7 +798,7 @@ async function bacthTrade(exchangeInstance, tokenInstance, exchangeBalance, make
     }
     // Log.debug(makerOrders)
     for (let i = 0; i < buyOrders.length; i++) {
-            so = {
+        so = {
             tokenBuy: buyOrders[i].tokenBuy,
             tokenSell: buyOrders[i].tokenSell,
             user: taker,
@@ -715,8 +877,8 @@ async function bacthTrade(exchangeInstance, tokenInstance, exchangeBalance, make
         let v = [makerOrder.v, takerOrder.v]
         let r = [makerOrder.r, takerOrder.r]
         let s = [makerOrder.s, takerOrder.s]
-        Log.debug("==========")
-        Log.debug(addresses,values,v,r,s)
+        Log.trace("==========")
+        Log.trace(addresses,values,v,r,s)
         adds.push(addresses)
         vals.push(values)
         vs.push(v)
@@ -748,8 +910,8 @@ async function bacthTrade(exchangeInstance, tokenInstance, exchangeBalance, make
     let afterBalance = await getBalanceForTrade(exchangeInstance, bo, so, pair, feeAccount)
 
     console.log('expeted:',  expeted);
-    Log.debug(afterBalance.makerBaseBalance, beforeBalance.makerBaseBalance + expeted[0][1]);
 
+    ///If the price is ok,always use maker's price first!
     assert.equal(afterBalance.makerBaseBalance, beforeBalance.makerBaseBalance + expeted[0][1], "maker's base token balance should be [" + afterBalance.makerBaseBalance + "]!")
     assert.equal(afterBalance.takerBaseBalance, beforeBalance.takerBaseBalance + expeted[1][1], "taker's base token balance should be [" + afterBalance.takerBaseBalance + "]!")
 
