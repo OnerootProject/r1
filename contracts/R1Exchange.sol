@@ -26,7 +26,7 @@ contract R1Exchange is SafeMath, Ownable {
     bool public stop = false;
     uint256 private DEFAULT_CHANNEL_ID = 0;
     bool public depositToEnabled = true;
-    bool public transferEnabled = true;
+    bool public transferEnabled = false;
     bool public changeChannelEnabled = false;
 
 

@@ -73,8 +73,8 @@
 maker和taker订单撮合交易的接口。
 ```javascript
 function trade(
-        address[11] addresses,
-        uint256[11] values,
+        address[13] addresses,
+        uint256[15] values,
         uint8[2] v,
         bytes32[2] r,
         bytes32[2] s
@@ -97,6 +97,8 @@ function trade(
 | &emsp; maker.feeToken| String | 手续费支付方式。如果为0，按传统方式支付；如果为erc-20 token支付，填对应地址 |
 | &emsp; taker.feeToken| String | 手续费支付方式。如果为0，按传统方式支付；如果为erc-20 token支付，填对应地址 |
 | &emsp; feeAccount| String | 手续费接受地址。该地址需要经过合约授权才有效|
+| &emsp; makerChannelAccount| String | maker通道方手续费接受地址|
+| &emsp; takerChannelAccount| String | maker通道方手续费接受地址|
 | **values**   |   Array[10] |  数值类参数 |
 | &emsp; maker.amountBuy| Int | maker买入的token数量，单位wei |
 | &emsp; taker.amountBuy| Int | taker买入的token数量，单位wei |
@@ -109,6 +111,10 @@ function trade(
 | &emsp; maker.nonce| Int | maker随机数 |
 | &emsp; taker.nonce| Int | taker随机数 |
 | &emsp; tradeAmount| Int | token的交易数量 |
+| &emsp; makerChannelFee| Int | maker通道方手续费数量 |
+| &emsp; takerChannelFee| Int | taker通道方手续费数量 |
+| &emsp; makerChannelId| Int | maker通道方ID |
+| &emsp; takerChannelId| Int | taker通道方ID |
 | **v**    |   Array[2] |  maker和taker的签名v |
 | **r**    |   Array[2] |  maker和taker的签名r |
 | **s**    |   Array[2] |  maker和taker的签名s |
@@ -119,8 +125,8 @@ function trade(
 
 ```javascript
 function batchTrade(
-        address[11][] addresses,
-        uint256[11][] values,
+        address[13][] addresses,
+        uint256[15][] values,
         uint8[2][] v,
         bytes32[2][] r,
         bytes32[2][] s
@@ -129,8 +135,8 @@ function batchTrade(
 
 | 参数名称      |     类型 |   说明   |
 | :-------- | --------:| :------: |
-| **addresses**    |   Array[11][] |  地址类参数 |
-| **values**   |   Array[10][] |  数值类参数 |
+| **addresses**    |   Array[13][] |  地址类参数 |
+| **values**   |   Array[15][] |  数值类参数 |
 | **v**    |   Array[2][] |  maker和taker的签名v |
 | **r**    |   Array[2][] |  maker和taker的签名r |
 | **s**    |   Array[2][] |  maker和taker的签名s |
@@ -142,97 +148,121 @@ function batchTrade(
 只有admin可操作此方法。
 
 ```javascript
-function adminWithdraw(address[3] addresses, uint256[3] values, uint8 v, bytes32 r, bytes32 s)
+function adminWithdraw(address[4] addresses, uint256[5] values, uint8 v, bytes32 r, bytes32 s)
 ```
 
 #### 参数
 
 | 参数名称      |     类型 |   说明   |
 | :-------- | --------:| :------: |
-| **addresses**    |   Array[3] |  地址类参数 |
+| **addresses**    |   Array[4] |  地址类参数 |
 | &emsp; user| String | 用户账号 |
 | &emsp; token| String | 提现token地址 |
 | &emsp; feeAccount| String | 手续费接收地址 |
-| **values**    |   Array[3] |  数值类参数 |
+| &emsp; channelFeeAccount| String | 通道方手续费接收地址 |
+| **values**    |   Array[5] |  数值类参数 |
 | &emsp; amount| Int | 提现金额 |
 | &emsp; nonce| Int | 随机数 |
 | &emsp; fee| Int | 提现手续费 |
+| &emsp; channelFee| Int | 通道方手续费 |
+| &emsp; channelId| Int | 通道方ID |
 | **v**    |   int |  签名参数v |
 | **r**    |   string |  签名参数r |
 | **s**    |   string |  签名参数s |
 
-### applyWithdraw
-用户调用此方法申请提现
+### batchCancel
+取消用户订单
 ```javascript
-function applyWithdraw(address token, uint256 amount)
+function batchCancel(address[] users, uint256[] nonces, uint256 channelId)
 ```
 #### 参数
 
-| 参数名称      |     类型 |   说明   |
+| 参数名称    |     类型  |   说明   |
 | :-------- | --------:| :------: |
-| token    |   address |  需要提现的token |
-| amount    |   int |  需要提现的token数量 |
+| users | address[] | 取消的用户地址 |
+| nonces | int[] | 取消的订单nonce |
+| channelId | int | 通道方ID |
+
+### applyWithdraw
+用户调用此方法申请提现
+```javascript
+function applyWithdraw(address token, uint256 amount, uint256 channelId)
+```
+#### 参数
+
+| 参数名称    |     类型  |   说明   |
+| :-------- | ---------:| :------------: |
+| token     |   address |  需要提现的token |
+| amount    |   int     |  需要提现的token数量 |
+| channelId |   int     |  通道方ID |
 
 ### approveWithdraw
 通过用户的申请提现。只有admin可以调用此方法，由Relayer调用此方法
 ```javascript
-function approveWithdraw(address token, address user)
+function approveWithdraw(address token, address user, uint256 channelId)
 ```
 #### 参数
 
 | 参数名称      |     类型 |   说明   |
 | :-------- | --------:| :------: |
 | token    |   address |  提现的token |
-| user    |   address |  提现的用户账号 |
+| user     |   address |  提现的用户账号 |
+| channelId |   int     |  通道方ID |
 
 ### withdraw
 用户调用此方法提现。在调用此方法前，用户需要先调用`applyWithdraw` 方法，待Relayer同意提现（admin调用approveWithdraw）或者超过7天后，用户能够成功提现。这里称之为`两阶段(apply+confirm)提现`
 ```javascript
-function withdraw(address token, uint256 amount)
+function withdraw(address token, uint256 amount, uint256 channelId)
 ```
 #### 参数
 
 | 参数名称      |     类型 |   说明   |
 | :-------- | --------:| :------: |
-| token    |   address |  需要提现的token |
+| token     |   address |  需要提现的token |
 | amount    |   int |  需要提现的token数量 |
+| channelId |   int     |  通道方ID |
 
 ### withdrawNoLimit
 此方法允许用户自由提现，不需要繁琐的`两阶段提现`。只有开关withdrawEnabled=true时（一般在Relayer无法响应调用`approveWithdraw`方法时开启），用户才可以调用此方法。
 ```javascript
-function withdrawNoLimit(address token, uint256 amount)
+function withdrawNoLimit(address token, uint256 amount, uint256 channelId)
 ```
 #### 参数
 
 | 参数名称      |     类型 |   说明   |
 | :-------- | --------:| :------: |
-| token    |   address |  需要提现的token |
+| token     |   address |  需要提现的token |
 | amount    |   int |  需要提现的token数量 |
+| channelId |   int     |  通道方ID |
 
 ### balanceOf
 查询用户再合约中的资产余额
 ```javascript
-function balanceOf(address token, address user)
+function balanceOf(address token, address user, uint256 channelId)
 ```
 #### 参数
 
 | 参数名称      |     类型 |   说明   |
 | :-------- | --------:| :------: |
 | token    |   address |  token 的地址|
-| user    |   address |  用户账号|
+| user     |   address |  用户账号|
+| channelId |   int     |  通道方ID |
 
 ### deposit
 用户充值ETH
 ```javascript
-function deposit()
+function deposit(uint256 channelId)
 ```
 #### 参数
-无
+
+| 参数名称      |     类型 |   说明   |
+| :-------- | --------:| :-------: |
+| channelId |   int    |  通道方ID  |
 
 ### depositToken
 用户充值token
 ```javascript
-function depositToken(address token, uint256 amount)
+function depositToken(address token, uint256 amount, uint256 channelId)
 ```
 #### 参数
 
@@ -240,6 +270,81 @@ function depositToken(address token, uint256 amount)
 | :-------- | --------:| :------: |
 | token    |   address | 充值的token地址|
 | amount    |   int |  充值数量|
+| channelId |   int     |  通道方ID |
+
+### depositTo
+用户给其他用户充值token
+```javascript
+function depositTo(address token, address to, uint256 amount, uint256 channelId)
+```
+#### 参数
+
+| 参数名称      |     类型 |   说明   |
+| :-------- | --------:| :------: |
+| token    |   address | 充值的token地址|
+| to       |   address | 接收人地址|
+| amount    |   int |  充值数量|
+| channelId |   int     |  通道方ID |
+
+### batchDepositTo
+用户批量给其他用户充值token，与depositTo方法类似。参数类型与depositTo相同，只不过batchDepositTo传的是数组形式的参数
+```javascript
+function batchDepositTo(address[] token, address[] to, uint256[] amount, uint256 channelId)
+```
+
+### innerTransfer
+用户内部转账给其他用户
+```javascript
+function innerTransfer(address token, address to, uint256 amount, uint256 channelId)
+```
+#### 参数
+
+| 参数名称      |     类型 |   说明   |
+| :-------- | --------:| :------: |
+| token    |   address | 转账的token地址|
+| to       |   address | 接收人地址|
+| amount    |   int |  充值数量|
+| channelId |   int     |  通道方ID |
+
+### batchInnerTransfer
+用户批量内部转账给其他用户，与innerTransfer方法类似。参数类型与innerTransfer相同，只不过batchInnerTransfer传的是数组形式的参数
+```javascript
+function batchInnerTransfer(address[] token, address[] to, uint256[] amount, uint256 channelId)
+```
+
+### changeChannel
+用户把token从一个通道方转到另一个通道方
+```javascript
+function changeChannel(address token, uint256 amount, uint256 fromChannelId, uint256 toChannelId)
+```
+#### 参数
+
+| 参数名称      |     类型 |   说明   |
+| :-------- | --------:| :------: |
+| token    |   address | 转移的token地址|
+| amount    |   int |  转移的数量|
+| fromChannelId |   int     |  转出通道方ID |
+| toChannelId |   int     |  转入通道方ID |
+
+### batchChangeChannel
+用户批量把token从一个通道方转到另一个通道方，与changeChannel方法类似。参数类型与changeChannel相同，只不过batchInnerTransfer传的是数组形式的参数
+```javascript
+function batchChangeChannel(address[] token,  uint256[] amount, uint256 fromChannelId, uint256 toChannelId)
+```
+
+### refund
+退还用户token
+```javascript
+function refund(address user, address[] tokens, uint256[] channelIds)
+```
+#### 参数
+
+| 参数名称      |     类型 |   说明   |
+| :-------- | --------:| :------: |
+| user    |   address | 用户钱包地址|
+| tokens    |   address | 用户token地址列表|
+| channelIds |   int     |  通道方ID列表 |
+
 
 ## 环境
 ### kovan testnet

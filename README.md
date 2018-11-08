@@ -72,8 +72,8 @@ Sha3 is calculated according to the above parameter sequence, and the hash value
 Maker and taker order matching transaction interface.
 ```javascript
 function trade(
-        address[11] addresses,
-         uint256[11] values,
+        address[13] addresses,
+         uint256[15] values,
          uint8[2] v,
          bytes32[2] r,
          bytes32[2] s
@@ -95,6 +95,8 @@ function trade(
 | &emsp; taker.baseToken|String | Taker's trade pair base token. The default is "0x0", ETH |
 | &emsp; maker.feeToken | String | Fee payment method. If it is 0, pay in the traditional way; if pay for erc-20 token, fill in the corresponding address |
 | &emsp; feeAccount | String | Fee acceptance address. This address needs to be authorized by contract |
+| &emsp; makerChannelAccount| String | Maker's channel Fee acceptance address|
+| &emsp; takerChannelAccount| String | Taker's channel Fee acceptance address|
 | **values** | Array[10] | Numeric Parameters |
 | &emsp; maker.amountBuy| Int | Number of token bought by maker, unit wei |
 | &emsp;taker.amountBuy| Int | Number of token bought by taker, unit wei |
@@ -107,6 +109,10 @@ function trade(
 | &emsp; maker.nonce| Int | Maker random number |
 | &emsp; taker.nonce| Int | Taker random number |
 | &emsp; tradeAmount| Int | Transaction number of token |
+| &emsp; makerChannelFee| Int | Maker's channel fee |
+| &emsp; takerChannelFee| Int | Taker's channel fee |
+| &emsp; makerChannelId| Int | Maker's channel ID |
+| &emsp; takerChannelId| Int | Taker's channel ID |
 | **v** | Array[2] | Signature v of maker and taker |
 | **r** | Array[2] | Signature r of maker and taker |
 | **s** | Array[2] | Signature s of maker and taker |
@@ -117,8 +123,8 @@ batch trade are similar to the trade method. The parameter type is the same as t
 
 ```javascript
 function batchTrade(
-        address[11][] addresses,
-        uint256[11][] values,
+        address[13][] addresses,
+        uint256[15][] values,
         uint8[2][] v,
         bytes32[2][] r,
         bytes32[2][] s
@@ -127,8 +133,8 @@ function batchTrade(
 
 | Parameter Name | Type | Description |
 | :-------- | --------:| :------: |
-| **addresses** | Array[11][] | Address parameters |
-| **values** | Array[10][] | Numerical parameters |
+| **addresses** | Array[13][] | Address parameters |
+| **values** | Array[15][] | Numerical parameters |
 | **v** | Array[2][] | Signature v of maker and taker |
 | **r** | Array[2][] | Signature r of maker and taker |
 | **s** | Array[2][] | Signature s of maker and taker |
@@ -139,7 +145,7 @@ Delegate admin withdrawal. The client first signs the user's withdrawal request 
 Only admin can operate this method.
 
 ```javascript
-function adminWithdraw(address[3] addresses, uint256[3] values, uint8 v, bytes32 r, bytes32 s)
+function adminWithdraw(address[4] addresses, uint256[5] values, uint8 v, bytes32 r, bytes32 s)
 ```
 
 
@@ -147,14 +153,17 @@ function adminWithdraw(address[3] addresses, uint256[3] values, uint8 v, bytes32
 
 | Parameter Name | Type | Description |
 | :-------- | --------:| :------: |
-| **addresses** | Array[3] | Address parameters |
+| **addresses** | Array[4] | Address parameters |
 | &emsp; user| String | User account |
 | &emsp; token| String | Withdrawal token address |
 | &emsp; feeAccount| String | Fee receiving address |
-| **values** | Array[3] | Numeric parameters |
+| &emsp; channelFeeAccount| String | Channel's Fee receiving address |
+| **values** | Array[5] | Numeric parameters |
 | &emsp; amount| Int | Withdrawal amount |
 | &emsp; nonce| Int | Random numbers |
-|emem; fee| Int | Withdrawal fee |
+| &emsp; fee| Int | Withdrawal fee |
+| &emsp; channelFee| Int | Channel's Fee |
+| &emsp; channelId| Int | Channel ID |
 | **v** | int | Signature parameters v |
 | **r** | string | signature parameter r |
 | **s** | string | Signature parameters s |
@@ -162,31 +171,33 @@ function adminWithdraw(address[3] addresses, uint256[3] values, uint8 v, bytes32
 ### batchCancel
 cancel users' order that before the nonce
 ```javascript
-function batchCancel(address[] users, uint256[] nonces)
+function batchCancel(address[] users, uint256[] nonces, uint256 channelId)
 ```
 #### Parameters
 
 | Parameter Name | Type | Description |
 | :-------- | --------:| :------: |
 | users | address[] | users that to cancel order |
-nonces | int[] | nonce of the order |
+| nonces | int[] | nonce of the order |
+| channelId | int | Channel ID |
 
 ### applyWithdraw
 The user calls this method to request for withdrawal
 ```javascript
-function applyWithdraw(address token, uint256 amount)
+function applyWithdraw(address token, uint256 amount, uint256 channelId)
 ```
 #### Parameters
 
 | Parameter Name | Type | Description |
 | :-------- | --------:| :------: |
 | token | address | Token to be withdrawn |
-Amount | int | Number of token to be withdrawn |
+| amount | int | Number of token to be withdrawn |
+| channelId | int | Channel ID |
 
 ### approveWithdraw
 Withdrawal from the user's request. Only admin can call this method, this method is called by Relayer
 ```javascript
-Function approveWithdraw(address token, address user)
+Function approveWithdraw(address token, address user, uint256 channelId)
 ```
 
 #### Parameters
@@ -195,55 +206,62 @@ Function approveWithdraw(address token, address user)
 | :-------- | --------:| :------: |
 | token | address | Token for withdrawal |
 | User | address | User account for withdrawal |
+| channelId | int | Channel ID |
 
 ### Withdraw
 The user calls this method for withdrawal. Before calling this method, the user needs to call the `applyWithdraw` method first, and after Relayer agrees to withdraw (admin calls applyWithdraw) or after 7 days, the user can successfully withdraw. This is called two-phase (`apply+confirm) withdrawal`
 ```javascript
-function withdraw(address token, uint256 amount)
+function withdraw(address token, uint256 amount, uint256 channelId)
 ```
 #### Parameters
 
 | Parameter Name | Type | Description |
 | :-------- | --------:| :------: |
 | token | address | Token to be withdrawn |
-| Amount | int | Number of token to be withdrawn |
+| amount | int | Number of token to be withdrawn |
+| channelId | int | Channel ID |
 
 ### withdrawNoLimit
 This method allows users to freely withdraw without the need for tedious `two-phase withdrawal`. The user can call this method only if the switch withdrawEnabled=true is on (usually it is on when Relayer does not respond to the call to the `approveWithdraw` method).
 ```javascript
-function withdrawNoLimit(address token, uint256 amount)
+function withdrawNoLimit(address token, uint256 amount, uint256 channelId)
 ```
 #### Parameters
 
 | Parameter Name | Type | Description |
 | :-------- | --------:| :------: |
 | token | address | Token to be withdrawn |
-Amount | int | Number of token to be withdrawn |
+| amount | int | Number of token to be withdrawn |
+| channelId | int | Channel ID |
 
 ### balanceOf
 Query the balance of assets in the customer's contract
 ```javascript
-function balanceOf(address token, address user)
+function balanceOf(address token, address user, uint256 channelId)
 ```
 #### Parameters
 
 | Parameter Name | Type | Description |
 | :-------- | --------:| :------: |
 | token | address | Token address |
-| Amount | int | User account |
+| amount | int | User account |
+| channelId | int | Channel ID |
 
 ### deposit
 Users deposit ETH
 ```javascript
-function deposit()
+function deposit(uint256 channelId)
 ```
 #### Parameters
-None
+
+| Parameter Name | Type | Description |
+| :-------- | --------:| :------: |
+| channelId | int | Channel ID |
 
 ### depositToken
 Users deposit token
 ```javascript
-function depositToken(address token, uint256 amount)
+function depositToken(address token, uint256 amount, uint256 channelId)
 ```
 
 #### Parameters
@@ -252,6 +270,82 @@ function depositToken(address token, uint256 amount)
 | :-------- | --------:| :------: |
 | token | address | Top-up token address |
 | amount | int | Top-up quantity |
+| channelId | int | Channel ID |
+
+
+### depositTo
+Users deposit to other users token
+```javascript
+function depositTo(address token, address to, uint256 amount, uint256 channelId)
+```
+#### Parameters
+
+| Parameter Name | Type | Description |
+| :-------- | --------:| :------: |
+| token    |   address | token address|
+| to       |   address | recipient address|
+| amount    |   int |  Top-up quantity|
+| channelId |   int     |  Channel ID |
+
+### batchDepositTo
+batchDepositTo is similar to the depositTo method. The parameter type is the same as depositTo, except that batchDepositTo passes an array of parameters
+```javascript
+function batchDepositTo(address[] token, address[] to, uint256[] amount, uint256 channelId)
+```
+
+### innerTransfer
+Users transfers internally to other users
+```javascript
+function innerTransfer(address token, address to, uint256 amount, uint256 channelId)
+```
+#### Parameters
+
+| Parameter Name | Type | Description |
+| :-------- | --------:| :------: |
+| token    |   address | token address|
+| to       |   address | recipient address|
+| amount    |   int |  Top-up quantity|
+| channelId |   int     |  Channel ID |
+
+### batchInnerTransfer
+batchInnerTransfer is similar to the innerTransfer method. The parameter type is the same as innerTransfer, except that batchInnerTransfer passes an array of parameters
+```javascript
+function batchInnerTransfer(address[] token, address[] to, uint256[] amount, uint256 channelId)
+```
+
+### changeChannel
+The user moves the token from one channel to another
+```javascript
+function changeChannel(address token, uint256 amount, uint256 fromChannelId, uint256 toChannelId)
+```
+#### Parameters
+
+| Parameter Name | Type | Description |
+| :-------- | --------:| :------: |
+| token    |   address | token address|
+| amount    |   int | move's quantity|
+| fromChannelId |   int     |  From Channel's ID |
+| toChannelId |   int     |  To Channel's ID |
+
+### batchChangeChannel
+batchChangeChannel is similar to the changeChannel method. The parameter type is the same as changeChannel, except that batchChangeChannel passes an array of parameters
+```javascript
+function batchChangeChannel(address[] token,  uint256[] amount, uint256 fromChannelId, uint256 toChannelId)
+```
+
+### refund
+Refund user's token to user's wallet
+```javascript
+function refund(address user, address[] tokens, uint256[] channelIds)
+```
+#### Parameters
+
+| Parameter Name | Type | Description |
+| :-------- | --------:| :------: |
+| user    |   address | user's wallet address|
+| tokens    |   address | user's token list|
+| channelIds |   int     |  channel id list |
+
 
 ## Environment
 ### kovan testnet

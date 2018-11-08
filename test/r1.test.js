@@ -131,6 +131,15 @@ contract("Exchange", function (accounts) {
     })
 
     it("innerTransfer", async () => {
+        let result
+        result = await exchangeInstance.transferEnabled()
+        Log.debug('before transferEnabled:',result)
+        assert.equal(result, false, "transferEnabled default value should be false")
+        await exchangeInstance.enableTransfer(true, {from: owner})
+        result = await exchangeInstance.transferEnabled()
+        Log.debug('after transferEnabled:',result)
+        assert.equal(result, true, "transferEnabled value should be true")
+
         let amount = 1
         let makerBeforeBalance = await exchangeInstance.balanceOf(tokenInstance.address, maker, channel1Id)
         Log.debug('maker before balance:', web3.fromWei(makerBeforeBalance.valueOf()), tokenInstance.address)
@@ -154,6 +163,9 @@ contract("Exchange", function (accounts) {
 
         assert.equal(web3.fromWei(makerAfterBalance.valueOf())*1, web3.fromWei(makerBeforeBalance.valueOf())*1 - amount, "maker balance error, maker transferTo rnt to taker failed")
         assert.equal(web3.fromWei(takerAfterBalance.valueOf())*1, web3.fromWei(takerBeforeBalance.valueOf())*1 + amount, "taker balance error, maker transferTo rnt to taker failed")
+
+        await exchangeInstance.enableTransfer(false, {from: owner})
+        result = await exchangeInstance.transferEnabled()
     })
 
 
