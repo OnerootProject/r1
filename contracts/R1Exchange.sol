@@ -140,17 +140,23 @@ contract R1Exchange is SafeMath, Ownable {
         Deposit(token, msg.sender, amount, tokenList[token][msg.sender][channelId], channelId);
     }
 
-    function depositTo(address token, address to, uint256 amount, uint256 channelId) public isDepositToEnabled {
-        require(token != 0 && to != 0);
+    function depositTo(address to, uint256 channelId) public payable isDepositToEnabled {
+        require(to != 0 && msg.value>0);
+        tokenList[0][to][channelId] = safeAdd(tokenList[0][to][channelId], msg.value);
+        DepositTo(0, msg.sender, to, msg.value, tokenList[0][to][channelId], channelId);
+    }
+
+    function depositTokenTo(address token, address to, uint256 amount, uint256 channelId) public isDepositToEnabled {
+        require(token != 0 && to != 0 && amount>0);
         tokenList[token][to][channelId] = safeAdd(tokenList[token][to][channelId], amount);
         require(Token(token).transferFrom(msg.sender, this, amount));
         DepositTo(token, msg.sender, to, amount, tokenList[token][to][channelId], channelId);
     }
 
-    function batchDepositTo(address[] token, address[] to, uint256[] amount, uint256 channelId) public isDepositToEnabled {
+    function batchDepositTokenTo(address[] token, address[] to, uint256[] amount, uint256 channelId) public isDepositToEnabled {
         require(to.length == amount.length && to.length <= 200);
         for (uint i = 0; i < to.length; i++) {
-            depositTo(token[i], to[i], amount[i], channelId);
+            depositTokenTo(token[i], to[i], amount[i], channelId);
         }
     }
 

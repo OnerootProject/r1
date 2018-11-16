@@ -45,7 +45,7 @@ contract("Exchange", function (accounts) {
     let initRNT = 1000;
     let takerRNTBalance = initRNT + 1000;
 
-    beforeEach(async () => {
+    before(async () => {
         tokenInstance = await RNTToken.deployed()
         exchangeInstance = await Exchange.deployed()
         assert.ok(tokenInstance)
@@ -59,7 +59,7 @@ contract("Exchange", function (accounts) {
         // assert.equal(result.receipt.status, 1, " setFeeAccount failed!")
     })
 
-    afterEach(async () => {
+    after(async () => {
 
     })
 
@@ -119,13 +119,23 @@ contract("Exchange", function (accounts) {
 
     it("depositTo", async () => {
         let amount = 1
+        // for eth
+        let beforeBalance = await exchangeInstance.balanceOf(0, maker, channel1Id)
+        Log.debug('before eth balance:', web3.fromWei(beforeBalance.valueOf()))
+        result = await exchangeInstance.depositTo(maker, channel1Id, {value: web3.toWei(amount, "ether"),from: taker})
+        assert.equal(result.receipt.status, 1, "taker deposit eth to maker failed")
+        let afterBalance = await exchangeInstance.balanceOf(0, maker, channel1Id)
+        Log.debug('after eth balance:', web3.fromWei(afterBalance.valueOf()))
+        assert.equal(web3.fromWei(afterBalance.valueOf()), web3.fromWei(beforeBalance.valueOf())*1 + amount*1, "taker deposit eth to maker failed")
+
+        //for token
         await tokenInstance.transfer(taker, web3.toWei(takerRNTBalance, "ether"), {from: owner})
         await tokenInstance.approve(exchangeInstance.address, web3.toWei(1000000000000, "ether"), {from: taker})
-        let beforeBalance = await exchangeInstance.balanceOf(tokenInstance.address, maker, channel1Id)
+        beforeBalance = await exchangeInstance.balanceOf(tokenInstance.address, maker, channel1Id)
         Log.debug('before balance:', web3.fromWei(beforeBalance.valueOf()), tokenInstance.address)
-        let result = await exchangeInstance.batchDepositTo([tokenInstance.address], [maker], [web3.toWei(amount, "ether")], channel1Id, {from: taker})
+        result = await exchangeInstance.batchDepositTokenTo([tokenInstance.address], [maker], [web3.toWei(amount, "ether")], channel1Id, {from: taker})
         assert.equal(result.receipt.status, 1, "taker deposit rnt to maker failed")
-        let afterBalance = await exchangeInstance.balanceOf(tokenInstance.address, maker, channel1Id)
+        afterBalance = await exchangeInstance.balanceOf(tokenInstance.address, maker, channel1Id)
         Log.debug('after balance:', web3.fromWei(afterBalance.valueOf()), tokenInstance.address)
         assert.equal(web3.fromWei(afterBalance.valueOf()), web3.fromWei(beforeBalance.valueOf())*1 + amount*1, "taker deposit rnt to maker failed")
     })

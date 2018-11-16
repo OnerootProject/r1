@@ -38,9 +38,11 @@ contract iR1Exchange {
 
     function depositToken(address token, uint256 amount, uint256 channelId) public;
 
-    function depositTo(address token, address to, uint256 amount, uint256 channelId) public;
+    function depositTo(address to, uint256 channelId) public payable;
 
-    function batchDepositTo(address[] token, address[] to, uint256[] amount, uint256 channelId) public;
+    function depositTokenTo(address token, address to, uint256 amount, uint256 channelId) public;
+
+    function batchDepositTokenTo(address[] token, address[] to, uint256[] amount, uint256 channelId) public;
 
     function innerTransfer(address token, address to, uint256 amount, uint256 channelId) public;
 
