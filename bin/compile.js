@@ -8,8 +8,18 @@ var source = fs.readFileSync(__dirname +"/../build/flattened/R1Exchange_flat.sol
 var input = {
     "ex.sol": source
 }
+var settings = {
+    optimizer: {
+        // disabled by default
+        enabled: true,
+        // Optimize for how many times you intend to run the code.
+        // Lower values will optimize more for initial deployment cost, higher values will optimize more for high-frequency usage.
+        runs: 200
+    }
+}
+
 // console.log(source)
-var output = solc.compile({sources: input}, 1)
+var output = solc.compile({sources: input, settings:settings}, 1)
 
 for (var contractName in output.contracts) {
     console.log(contractName)
