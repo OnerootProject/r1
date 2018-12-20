@@ -7,53 +7,43 @@ var Exchange=artifacts.require("R1Exchange");
 module.exports = function(deployer, network, accounts) {
     if(network == "development"){
         deploy2Dev(deployer, network, accounts)
-    }else if(network=="kovan"){
-        deploy2Kovan(deployer, network, accounts)
+    } else {
+        deploy(deployer, network, accounts)
     }
-
 };
 
 function deploy2Dev(deployer, network, accounts){
-    // deployer.deploy(Token);
-    // deployer.deploy(Exchange);
-
     deployer.deploy(Token).then(function () {
-        return deployer.deploy(Exchange,
-            // "0x0",
-            // Token.address,
-            {from:accounts[0]});
+        return deploy(deployer, network, accounts);
     })
-
-    // deployer.deploy(Exchange,
-    //     "0x7Da8470794fD52463956D8deeD55eDec9fA6C662",
-    //     {from:accounts[0]});
 }
 
-function deploy2Kovan(deployer, network, accounts){
+function deploy(deployer, network, accounts){
+    var owner = accounts[0];
+    var exchangeInstance;
+    return deployer.deploy(Exchange,{from:owner}).then(() => {
+        return Exchange.deployed();
+    }).then((_exchange) => {
+        exchangeInstance = _exchange;
+        console.log('Exchange address:', exchangeInstance.address);
+        return initAccount(exchangeInstance, accounts);
+    })
+}
 
-    deployer.deploy(Exchange,
-        "0x7Da8470794fD52463956D8deeD55eDec9fA6C662",
-        {from:"0xC4A9A64a9b63Bac398552065759b34c9BE244BC6"});
-    // deployer.deploy(Token,{from:accounts[2],overwrite: true});
-    // const exParam={
-    //     feeAddr:accounts[0],
-    //     accountControlSC_:0,
-    //     feeOrder:0,
-    //     feeTrade:web3.toWei(0.01,"ether"),
-    //     feeReward:0,
-    //     baseTokenAddr:0
-    // }
 
-    // deployer.deploy(ExchangeData).then(function () {
-    //     return deployer.deploy(Exchange,
-    //         ExchangeData.address,
-    //         exParam.feeAddr,exParam.accountControlSC_,
-    //         exParam.feeOrder,exParam.feeTrade,exParam.feeReward,exParam.baseTokenAddr,{from:accounts[2]});
-    // }).then(function () {
-    //     return deployer.deploy(ExchangeProxy,
-    //         ExchangeData.address,
-    //         Exchange.address,
-    //         {from:accounts[2]}
-    //     );
-    // });
+async function initAccount(exchangeInstance, accounts) {
+    if(!exchangeInstance) {
+        return
+    }
+    var owner = accounts[0];
+    var admin="0x031d8da61261bc51e95affcc74359bbd6fcf388d";
+    var feeAcc="0x00B9022a6b81E954129d6f807d7c9F3274820176";
+
+    console.log('initAccount...')
+    let tx = await exchangeInstance.setAdmin(admin,true, {from: owner,gas:100000});
+    console.debug('setAdmin status:', tx.receipt.status);
+
+    tx = await exchangeInstance.setFeeAccount(feeAcc,true, {from: owner,gas:100000});
+    console.debug('setFeeAccount status:', tx.receipt.status);
+
 }

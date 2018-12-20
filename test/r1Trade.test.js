@@ -92,7 +92,7 @@ function testTrade() {
             amountSell: web3.toWei("2", "ether"),
             baseToken: "0x0",
             expires: 5000000,
-            fee: web3.toWei("0.1", "ether"),
+            fee: web3.toWei("0.05", "ether"),
             nonce: Date.now(),
             feeToken: 0,
             channelFeeAccount : channel1FeeAccount,
@@ -110,7 +110,7 @@ function testTrade() {
             amountSell: web3.toWei("10", "ether"),
             baseToken: "0x0",
             expires: 5000000,
-            fee: web3.toWei("0.1", "ether"),
+            fee: web3.toWei("0.05", "ether"),
             nonce: Date.now(),
             feeToken: 0,
             channelFeeAccount : channel2FeeAccount,
@@ -156,14 +156,15 @@ function testTrade() {
         assert.equal(afterBalance.makerBaseBalance, beforeBalance.makerBaseBalance - 2, "maker's base token balance should be [" + afterBalance.makerBaseBalance + "]!")
         assert.equal(afterBalance.takerBaseBalance, beforeBalance.takerBaseBalance + 2, "taker's base token balance should be [" + afterBalance.takerBaseBalance + "]!")
 
-        assert.equal(afterBalance.makerFeeAccBalance, beforeBalance.makerFeeAccBalance + 0.2, "maker's FeeAccount balance should be [" + afterBalance.makerFeeAccBalance + "]!")
-        assert.equal(afterBalance.takerFeeAccBalance, beforeBalance.takerFeeAccBalance + 0.2, "taker's FeeAccount balance should be [" + afterBalance.takerFeeAccBalance + "]!")
+        //fee = 10*2*0.05
+        assert.equal(afterBalance.makerFeeAccBalance, beforeBalance.makerFeeAccBalance + 0.1, "maker's FeeAccount balance should be [" + afterBalance.makerFeeAccBalance + "]!")
+        assert.equal(afterBalance.takerFeeAccBalance, beforeBalance.takerFeeAccBalance + 0.1, "taker's FeeAccount balance should be [" + afterBalance.takerFeeAccBalance + "]!")
 
         assert.equal(afterBalance.makerChannelBalance, beforeBalance.makerChannelBalance + 0.1, "maker's ChannelFeeAccount balance should be [" + afterBalance.makerChannelBalance + "]!")
         assert.equal(afterBalance.takerChannelBalance, beforeBalance.takerChannelBalance + 0.1, "taker's ChannelFeeAccount balance should be [" + afterBalance.takerChannelBalance + "]!")
 
-        assert.equal(afterBalance.makerTokenBalance, beforeBalance.makerTokenBalance + 10-0.2, "maker's token balance should be [" + afterBalance.makerTokenBalance + "]!")
-        assert.equal(afterBalance.takerTokenBalance, beforeBalance.takerTokenBalance - 10-0.2, "taker's token balance should be [" + afterBalance.takerTokenBalance + "]!")
+        assert.equal(afterBalance.makerTokenBalance, beforeBalance.makerTokenBalance + 10-0.15, "maker's token balance should be [" + afterBalance.makerTokenBalance + "]!")
+        assert.equal(afterBalance.takerTokenBalance, beforeBalance.takerTokenBalance - 10-0.15, "taker's token balance should be [" + afterBalance.takerTokenBalance + "]!")
 
     })
 

@@ -297,7 +297,7 @@ contract R1Exchange is SafeMath, Ownable {
         param.fee = checkFee(param.amount, param.fee);
         param.channelFee = checkFee(param.amount, param.channelFee);
 
-        bytes32 hash = keccak256(this, param.user, param.token, param.amount, param.nonce, param.feeAccount, param.channelFeeAccount, param.channelId);
+        bytes32 hash = keccak256(this, param.user, param.token, param.amount, param.nonce, param.channelFeeAccount, param.channelId);
         require(!withdrawn[hash]);
         withdrawn[hash] = true;
         require(ecrecover(keccak256("\x19Ethereum Signed Message:\n32", hash), v, r, s) == param.user);

@@ -217,9 +217,9 @@ contract("Exchange", function (accounts) {
     })
 
     it("adminWithdraw", async () => {
-        Log.debug('adminWithdraw hash:', [exchangeInstance.address, taker, tokenInstance.address, web3.toWei("1", "ether"), 11, feeAccount, channel2FeeAccount, channel2Id])
-        let hash = "0x" + abi.soliditySHA3(["address", "address", "address", "uint256", "uint256", "address", "address", "uint256"],
-            [exchangeInstance.address, taker, tokenInstance.address, web3.toWei("1", "ether"), 11, feeAccount, channel2FeeAccount, channel2Id]
+        Log.debug('adminWithdraw hash:', [exchangeInstance.address, taker, tokenInstance.address, web3.toWei("1", "ether"), 11, channel2FeeAccount, channel2Id])
+        let hash = "0x" + abi.soliditySHA3(["address", "address", "address", "uint256", "uint256",  "address", "uint256"],
+            [exchangeInstance.address, taker, tokenInstance.address, web3.toWei("1", "ether"), 11, channel2FeeAccount, channel2Id]
         ).toString("hex")
         Log.debug("=========", hash)
         var signed = web3.eth.sign(taker, hash);

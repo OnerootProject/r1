@@ -15,10 +15,10 @@ var admin="0x031d8da61261bc51e95affcc74359bbd6fcf388d",feeAcc="0x00B9022a6b81E95
 async function run() {
     try {
         let result = await deployContract(account,json,code,[])
-        console.log('result:', result)
+        // console.log('result:', result)
         console.log('contractAddr:', result.contractAddress)
         sleep.msleep(2000)
-        await initAccount(result._address)
+        await initAccount(result.contractAddress)
     } catch (e) {
         console.log('error:', e)
     }
@@ -72,3 +72,4 @@ function deployContract(account,abi, code, arguments) {
 
 
 run().then();
+// initAccount('0x3b589DcE872ebbCe39754a97A3Cc394A63C40e0A').then()

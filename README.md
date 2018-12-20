@@ -349,7 +349,7 @@ function refund(address user, address[] tokens, uint256[] channelIds)
 
 ## Environment
 ### kovan testnet
-**R1Exchange:** 0x11d637997bfFf7c2c8d6ca7892806b3C0980B0a0,0x02Fd712f100D73653dFb5120B7A9B14fAf619bDb,0x7efcA8454e579215830B9226e2c67ECF1b8CedC2
+**R1Exchange:** 0x99129d3e690b429e30020ba2f904202c125271ee,0xb3d9cc357fbaa00be090b8de484dba1d6f6d5192,0x6ae8203f3a4b61f6422a0f5c59cc4cd950ca3b60
 
 **admin account:** 
 * 0x899b5aab87326cafc71189f87a36584e02be2c83
