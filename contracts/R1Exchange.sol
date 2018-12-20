@@ -141,13 +141,13 @@ contract R1Exchange is SafeMath, Ownable {
     }
 
     function depositTo(address to, uint256 channelId) public payable isDepositToEnabled {
-        require(to != 0 && msg.value>0);
+        require(to != 0 && msg.value > 0);
         tokenList[0][to][channelId] = safeAdd(tokenList[0][to][channelId], msg.value);
         DepositTo(0, msg.sender, to, msg.value, tokenList[0][to][channelId], channelId);
     }
 
     function depositTokenTo(address token, address to, uint256 amount, uint256 channelId) public isDepositToEnabled {
-        require(token != 0 && to != 0 && amount>0);
+        require(token != 0 && to != 0 && amount > 0);
         tokenList[token][to][channelId] = safeAdd(tokenList[token][to][channelId], amount);
         require(Token(token).transferFrom(msg.sender, this, amount));
         DepositTo(token, msg.sender, to, amount, tokenList[token][to][channelId], channelId);
@@ -182,7 +182,7 @@ contract R1Exchange is SafeMath, Ownable {
         ChangeChannel(token, msg.sender, amount, fromChannelId, toChannelId);
     }
 
-    function batchChangeChannel(address[] token,  uint256[] amount, uint256 fromChannelId, uint256 toChannelId) public isChangeChannelEnabled {
+    function batchChangeChannel(address[] token, uint256[] amount, uint256 fromChannelId, uint256 toChannelId) public isChangeChannelEnabled {
         require(token.length == amount.length && amount.length <= 200);
         for (uint i = 0; i < amount.length; i++) {
             changeChannel(token[i], amount[i], fromChannelId, toChannelId);
@@ -276,7 +276,7 @@ contract R1Exchange is SafeMath, Ownable {
     * [3] channelFee
     * [4] channelId
     **/
-    function adminWithdraw(address[4] addresses, uint256[5] values,  uint8 v, bytes32 r, bytes32 s)
+    function adminWithdraw(address[4] addresses, uint256[5] values, uint8 v, bytes32 r, bytes32 s)
     public
     onlyAdmin
     isFeeAccount(addresses[2])
@@ -291,7 +291,7 @@ contract R1Exchange is SafeMath, Ownable {
             fee : values[2],
             channelFee : values[3],
             channelId : values[4]
-        });
+            });
 
         require(param.amount <= tokenList[param.token][param.user][param.channelId]);
         param.fee = checkFee(param.amount, param.fee);
@@ -502,14 +502,14 @@ contract R1Exchange is SafeMath, Ownable {
             totalFee = safeAdd(order.fee, order.channelFee);
             require(totalFee <= tokenList[order.feeToken][order.user][order.channelId]);
             tokenList[order.feeToken][feeAccount][DEFAULT_CHANNEL_ID] = safeAdd(tokenList[order.feeToken][feeAccount][DEFAULT_CHANNEL_ID], order.fee);
-            tokenList[order.feeToken][order.channelFeeAccount][order.channelId] = safeAdd(tokenList[order.feeToken][order.channelFeeAccount][order.channelId], order.fee);
+            tokenList[order.feeToken][order.channelFeeAccount][order.channelId] = safeAdd(tokenList[order.feeToken][order.channelFeeAccount][order.channelId], order.channelFee);
             tokenList[order.feeToken][order.user][order.channelId] = safeSub(tokenList[order.feeToken][order.user][order.channelId], totalFee);
         } else {
             order.fee = checkFee(amountBuy, order.fee);
             order.channelFee = checkFee(amountBuy, order.channelFee);
             totalFee = safeAdd(order.fee, order.channelFee);
             tokenList[order.tokenBuy][feeAccount][DEFAULT_CHANNEL_ID] = safeAdd(tokenList[order.tokenBuy][feeAccount][DEFAULT_CHANNEL_ID], order.fee);
-            tokenList[order.tokenBuy][order.channelFeeAccount][order.channelId] = safeAdd(tokenList[order.tokenBuy][order.channelFeeAccount][order.channelId], order.fee);
+            tokenList[order.tokenBuy][order.channelFeeAccount][order.channelId] = safeAdd(tokenList[order.tokenBuy][order.channelFeeAccount][order.channelId], order.channelFee);
             tokenList[order.tokenBuy][order.user][order.channelId] = safeSub(tokenList[order.tokenBuy][order.user][order.channelId], totalFee);
         }
     }
