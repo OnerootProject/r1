@@ -1,5 +1,6 @@
 const HDWalletProvider = require("truffle-hdwallet-provider-privkey");
 const infura_apikey = "4e987044d78c44319523b16c7bf0412c";
+const owner = '0x899b5aab87326cafc71189f87a36584e02be2c83'
 var ownerkey = '0xa6301834a2351a1b5740ea46a8ecd881904235950a7daba6ae41c5806cc4a766';
 if(ownerkey.substring(0,2)=='0x') {
     ownerkey = ownerkey.substring(2);
