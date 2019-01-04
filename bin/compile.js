@@ -1,3 +1,5 @@
+#!/usr/bin/env node
+
 var solc = require('solc')
 var fs = require("fs")
 var abi = require('ethereumjs-abi')
@@ -28,7 +30,7 @@ for (var contractName in output.contracts) {
 params = packValues(["address"], ["0x899b5aab87326cafc71189f87a36584e02be2c83"])
 console.log(params)
 
-console.log("bytecode:", output.contracts["ex.sol:R1Exchange"].bytecode + params)
+console.log("bytecode:", output.contracts["ex.sol:R1Exchange"].bytecode)
 console.log("abi:", "'"+output.contracts["ex.sol:R1Exchange"].interface+"'")
 
 function packValues(types, values) {
