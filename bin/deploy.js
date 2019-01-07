@@ -53,6 +53,7 @@ function init() {
 
     runtime._account = runtime._web3.eth.accounts.wallet.add(runtime._ownerPrivateKey)
 
+    console.log('solc version:', solc.version());
     console.log('network:', runtime._network);
     return true;
 }
@@ -159,10 +160,10 @@ try {
         runtime._ownerPrivateKey = '0x' + runtime._ownerPrivateKey
     }
 
+    run().then();
 
 }catch(e) {
     console.error(e);
 }
 
-run().then();
 

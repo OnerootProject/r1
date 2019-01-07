@@ -1,7 +1,7 @@
 
 # R1协议接口说明
 ## 简介
-合约文件为R1Exchange.sol.  
+合约文件为R1Exchange.sol.
 本合约要求将部分合约调用交由后台完成，以期达到后台可控的订单撮合，提供更好的交易体验。
 
 ##### 由后台发起的合约调用包含：
@@ -28,7 +28,7 @@
 前端签名订单的步骤如下：
 1. 对订单参数求hash。
   需要签名的订单参数
-  
+
 | 参数名称 |   说明   |
 | :--------| :------: |
 | **tokenBuy** |  买入token的合约地址 |
@@ -42,7 +42,7 @@
 
 按以上参数顺序进行sha3计算，得到hash值。
 
-2. 对步骤1中得到的hash值进行签名  
+2. 对步骤1中得到的hash值进行签名
 
 得到的签名是16进制字符串，需要转换为v、r、s三个参数
 
@@ -58,7 +58,7 @@
 ## 提现信息签名
 同订单信息签名一样，需要对提现信息求hash，其他步骤都一样。
   需要签名的提现信息参数
-  
+
 | 参数名称 |   说明   |
 | :--------| :------: |
 | **user** |  提现用户的账号 |
@@ -130,7 +130,7 @@ function batchTrade(
         uint8[2][] v,
         bytes32[2][] r,
         bytes32[2][] s
-    ) 
+    )
 ```
 
 | 参数名称      |     类型 |   说明   |
@@ -348,7 +348,7 @@ function refund(address user, address[] tokens, uint256[] channelIds)
 
 ## 环境
 ### kovan testnet
-**R1Exchange:** 0x99129d3e690b429e30020ba2f904202c125271ee,0xb3d9cc357fbaa00be090b8de484dba1d6f6d5192,0x6ae8203f3a4b61f6422a0f5c59cc4cd950ca3b60
+**R1Exchange:** 0xC8BfdDEE1CAC0AFAB2cE63e94CDe1f4f2ef6f7b2,0x99129d3e690b429e30020ba2f904202c125271ee,0xb3d9cc357fbaa00be090b8de484dba1d6f6d5192,0x6ae8203f3a4b61f6422a0f5c59cc4cd950ca3b60
 
 **admin 账号：** 0x899b5aab87326cafc71189f87a36584e02be2c83,0xaee83b86da465c6daa9c65164db25821f272b8ce,0x031d8da61261bc51e95affcc74359bbd6fcf388d,0xC0260c9dD73010044802299e71fab7B663055d21
 
@@ -359,7 +359,7 @@ function refund(address user, address[] tokens, uint256[] channelIds)
 #### pre env
 **R1Exchange:** 0x78987a34935754eD24B3868C94e1a98e9161f36B
 
-**admin 账号：** 
+**admin 账号：**
 * 0x847D22c8479ce704f1e8873ea407537377A5B48F
 * 0xC36229f9C3124FAC85D9dEb2EaF624D6598167d6
 
@@ -369,7 +369,7 @@ function refund(address user, address[] tokens, uint256[] channelIds)
 
 **R1Exchange:** 0x353D92db08564500d812DDFD23a668D2F405ED85
 
-**admin 账号：** 
+**admin 账号：**
 * 0x457804851EAf090DAD4871F9609010C6868D99d4
 * 0xA0E85343129e21A625E980065dCa05856BB6BCFe
 * 0xA3cAda064D65b48C6c3ed9adAbE1923966a2719B
@@ -378,15 +378,15 @@ function refund(address user, address[] tokens, uint256[] channelIds)
 
 ## 如何运行测试用例 ?
 
-1. 启动docker容器 
+1. 启动docker容器
 ```bash
-# docker-compose up 
+# docker-compose up
 ```
 
 2. 运行测试脚本
 ```bash
 # ./run_test.sh
-``` 
+```
 > 注意：运行docker-compose命令前请安装docker
 
 

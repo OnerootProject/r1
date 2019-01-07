@@ -56,7 +56,7 @@ If withdraw asset through client, the request will not be committed on  chain. S
 ## Withdrawal information signing
 As with the order information signature, you need to get hash from the withdrawal information, and the other steps are the same.
    The required withdrawal information parameter
-  
+
 | Parameter Name | Description |
 | :--------| :------: |
 | **contract** | exchange contract address |
@@ -128,7 +128,7 @@ function batchTrade(
         uint8[2][] v,
         bytes32[2][] r,
         bytes32[2][] s
-    ) 
+    )
 ```
 
 | Parameter Name | Type | Description |
@@ -349,9 +349,9 @@ function refund(address user, address[] tokens, uint256[] channelIds)
 
 ## Environment
 ### kovan testnet
-**R1Exchange:** 0x99129d3e690b429e30020ba2f904202c125271ee,0xb3d9cc357fbaa00be090b8de484dba1d6f6d5192,0x6ae8203f3a4b61f6422a0f5c59cc4cd950ca3b60
+**R1Exchange:** 0xC8BfdDEE1CAC0AFAB2cE63e94CDe1f4f2ef6f7b2,0x99129d3e690b429e30020ba2f904202c125271ee,0xb3d9cc357fbaa00be090b8de484dba1d6f6d5192,0x6ae8203f3a4b61f6422a0f5c59cc4cd950ca3b60
 
-**admin account:** 
+**admin account:**
 * 0x899b5aab87326cafc71189f87a36584e02be2c83
 * 0xaee83b86da465c6daa9c65164db25821f272b8ce
 * 0x031d8da61261bc51e95affcc74359bbd6fcf388d
@@ -364,7 +364,7 @@ function refund(address user, address[] tokens, uint256[] channelIds)
 #### pre env
 **R1Exchange:** 0xAC1bdBd54965da388d158D9fD564d2cFB8CA965a
 
-**admin account:** 
+**admin account:**
 * 0x847D22c8479ce704f1e8873ea407537377A5B48F (Main)
 * 0xC36229f9C3124FAC85D9dEb2EaF624D6598167d6
 
@@ -374,7 +374,7 @@ function refund(address user, address[] tokens, uint256[] channelIds)
 
 **R1Exchange:** 0x42a3095222E13E0891b89381E1b8cc84709b35BC
 
-**admin account:** 
+**admin account:**
 * 0x457804851EAf090DAD4871F9609010C6868D99d4
 * 0xA0E85343129e21A625E980065dCa05856BB6BCFe
 * 0xA3cAda064D65b48C6c3ed9adAbE1923966a2719B
@@ -385,11 +385,11 @@ function refund(address user, address[] tokens, uint256[] channelIds)
 
 1. Start the docker container
 ```bash
-# docker-compose up 
+# docker-compose up
 ```
 
 2. Run the test script
 ```bash
 # ./run_test.sh
-``` 
+```
 > Note: Please install docker before running docker-compose command
