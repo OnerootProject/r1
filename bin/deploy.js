@@ -11,8 +11,6 @@ const buildPath = __dirname+'/../build'
 const Web3 = require("web3")
 
 var config = {
-    //gwei
-    gasPrice: 10,
     network: {
         dev: 'http://localhost:8545',
         main: 'https://mainnet.infura.io/bOvbiqbRT3nMOdB2jvMg',
@@ -23,6 +21,8 @@ var config = {
 }
 
 var runtime = {
+    //gwei
+    _gasPrice: 10,
     _web3: null,
     _network: null,
     _account: null,
@@ -91,7 +91,7 @@ function deployContract(account,abi, code, arguments) {
             arguments: arguments
         }).send({
             from: account.address,
-            gasPrice: runtime._web3.utils.toWei(config.gasPrice+'', "gwei"),
+            gasPrice: runtime._web3.utils.toWei(runtime._gasPrice+'', "gwei"),
             gas: 5000000
         })
             .on('error', function (res) {
@@ -138,6 +138,14 @@ try {
 
     if(!runtime._network) {
         runtime._network = config.network.dev
+    }
+
+    if(!runtime._network) {
+        runtime._network = config.network.dev
+    }
+
+    if(param.gasprice) {
+        runtime._gasPrice = param.gasprice
     }
 
     runtime._ownerPrivateKey = param.privkey

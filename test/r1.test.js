@@ -216,6 +216,23 @@ contract("Exchange", function (accounts) {
         await exchangeInstance.enableChangeChannel(false, {from: owner})
     })
 
+    it("adminWithdraw sign", async () => {
+        Log.debug('adminWithdraw hash param:', "0x99129d3e690b429e30020ba2f904202c125271ee","0xf6158f9fd763caa65cdd9607e77233397b370dde","0x9227E4cDddD86dc66100354c0a1aD196276b345A","500000000000000000000",1545649796548,"0x00B9022a6b81E954129d6f807d7c9F3274820176",2)
+        let hash = "0x" + abi.soliditySHA3(["address", "address", "address", "uint256", "uint256",  "address", "uint256"],
+            ["0x99129d3e690b429e30020ba2f904202c125271ee","0xf6158f9fd763caa65cdd9607e77233397b370dde","0x9227E4cDddD86dc66100354c0a1aD196276b345A","500000000000000000000",1545649796548,"0x00B9022a6b81E954129d6f807d7c9F3274820176",2]
+        ).toString("hex")
+        Log.debug("adminWithdraw hash result:", hash)
+        var signed = web3.eth.sign('0xf6158f9fd763caa65cdd9607e77233397b370dde', hash);
+        Log.debug("adminWithdraw signed:", signed)
+        let orderSigned = signed.substring(2, signed.length);
+        let r = "0x" + orderSigned.slice(0, 64);
+        let s = "0x" + orderSigned.slice(64, 128);
+        let v = web3.toDecimal(orderSigned.slice(128, 130)) + 27;
+        Log.debug("adminWithdraw r:", r);
+        Log.debug("adminWithdraw s:", s);
+        Log.debug("adminWithdraw v:", v);
+    })
+
     it("adminWithdraw", async () => {
         Log.debug('adminWithdraw hash:', [exchangeInstance.address, taker, tokenInstance.address, web3.toWei("1", "ether"), 11, channel2FeeAccount, channel2Id])
         let hash = "0x" + abi.soliditySHA3(["address", "address", "address", "uint256", "uint256",  "address", "uint256"],

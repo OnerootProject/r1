@@ -1,7 +1,5 @@
-
-
-var Token = artifacts.require("HumanStandardToken");
-
+var RNT = artifacts.require("HumanStandardToken");
+var BNB = artifacts.require("BNB");
 var Exchange=artifacts.require("R1Exchange");
 
 module.exports = function(deployer, network, accounts) {
@@ -13,14 +11,33 @@ module.exports = function(deployer, network, accounts) {
 };
 
 function deploy2Dev(deployer, network, accounts){
-    deployer.deploy(Token).then(function () {
-        return deploy(deployer, network, accounts);
+    var owner = accounts[0];
+    var exchangeInstance;
+    var rntInstance;
+    var bnbInstance;
+    console.log('owner:', owner);
+    return deployer.deploy(Exchange,{from:owner}).then(() => {
+        return Exchange.deployed();
+    }).then((_exchange) => {
+        exchangeInstance = _exchange;
+        console.log('Exchange address:', exchangeInstance.address);
+        return deployer.deploy(RNT,{from:owner});
+    }).then((_rnt) => {
+        rntInstance = _rnt;
+        console.log('RNT address:', rntInstance.address);
+        return deployer.deploy(BNB,{from:owner});
+    }).then((_bnb) => {
+        bnbInstance = _bnb;
+        console.log('BNB address:', bnbInstance.address);
+
+        return initAccount(exchangeInstance, accounts);
     })
 }
 
 function deploy(deployer, network, accounts){
     var owner = accounts[0];
     var exchangeInstance;
+    console.log('owner:', owner);
     return deployer.deploy(Exchange,{from:owner}).then(() => {
         return Exchange.deployed();
     }).then((_exchange) => {

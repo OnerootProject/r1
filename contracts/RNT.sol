@@ -87,14 +87,14 @@ contract Controlled is Owned{
     }
 
     // Flag that determines if the token is transferable or not.
-    bool public transferEnabled = false;
+    bool public transferEnabled = true;
 
     // flag that makes locked address effect
     bool lockFlag=true;
     mapping(address => bool) locked;
     mapping(address => bool) exclude;
 
-    function enableTransfer(bool _enable) 
+    function enableTransfer(bool _enable)
     public onlyOwner{
         transferEnabled=_enable;
     }
@@ -104,16 +104,16 @@ contract Controlled is Owned{
         lockFlag=_enable;
         return true;
     }
-    function addLock(address _addr) 
-    onlyOwner 
+    function addLock(address _addr)
+    onlyOwner
     returns (bool success){
         require(_addr!=msg.sender);
         locked[_addr]=true;
         return true;
     }
 
-    function setExclude(address _addr) 
-    onlyOwner 
+    function setExclude(address _addr)
+    onlyOwner
     returns (bool success){
         exclude[_addr]=true;
         return true;
@@ -132,10 +132,10 @@ contract Controlled is Owned{
                 assert(!locked[msg.sender]);
             }
         }
-        
+
         _;
     }
-  
+
 }
 
 /*
@@ -213,7 +213,7 @@ contract HumanStandardToken is StandardToken {
     string public version = 'H0.1';       //human 0.1 standard. Just an arbitrary versioning scheme.
 
     function HumanStandardToken() {
-        totalSupply = 400000000 * (10 ** 18); 
+        totalSupply = 400000000 * (10 ** 18);
         balances[msg.sender] = totalSupply;               // Give the creator all initial tokens
         name = "OneRoot Network Token";                                   // Set the name for display purposes
         decimals = 18;                            // Amount of decimals for display purposes
